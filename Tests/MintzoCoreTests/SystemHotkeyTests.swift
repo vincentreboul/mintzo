@@ -11,26 +11,72 @@ final class SystemHotkeyTests: XCTestCase {
 
     func testPushToTalkMapsDownUpToBeganEnded() {
         var machine = ShortcutActivationMachine(mode: .pushToTalk)
-        XCTAssertEqual(machine.process(.down), .pressBegan)
-        XCTAssertEqual(machine.process(.up), .pressEnded)
-        XCTAssertEqual(machine.process(.down), .pressBegan)
-        XCTAssertEqual(machine.process(.up), .pressEnded)
+        XCTAssertEqual(machine.process(.down, at: 10.0), .pressBegan)
+        XCTAssertEqual(machine.process(.up, at: 10.5), .pressEnded)
+        XCTAssertEqual(machine.process(.down, at: 11.0), .pressBegan)
+        XCTAssertEqual(machine.process(.up, at: 11.5), .pressEnded)
     }
 
     func testPushToTalkDeduplicatesRepeats() {
         var machine = ShortcutActivationMachine(mode: .pushToTalk)
-        XCTAssertEqual(machine.process(.down), .pressBegan)
-        XCTAssertNil(machine.process(.down), "auto-repeat keyDown ignoré")
-        XCTAssertEqual(machine.process(.up), .pressEnded)
-        XCTAssertNil(machine.process(.up), "keyUp orphelin ignoré")
+        XCTAssertEqual(machine.process(.down, at: 10.0), .pressBegan)
+        XCTAssertNil(machine.process(.down, at: 10.1), "auto-repeat keyDown ignoré")
+        XCTAssertEqual(machine.process(.up, at: 10.2), .pressEnded)
+        XCTAssertNil(machine.process(.up, at: 10.3), "keyUp orphelin ignoré")
+    }
+
+    func testPushToTalkIgnoresToggleDebounce() {
+        // Le debounce est propre au mode toggle : en push-to-talk, des cycles
+        // rapprochés (< 300 ms) restent pleinement fonctionnels.
+        var machine = ShortcutActivationMachine(mode: .pushToTalk, toggleDebounce: 0.3)
+        XCTAssertEqual(machine.process(.down, at: 10.00), .pressBegan)
+        XCTAssertEqual(machine.process(.up, at: 10.05), .pressEnded)
+        XCTAssertEqual(machine.process(.down, at: 10.10), .pressBegan)
+        XCTAssertEqual(machine.process(.up, at: 10.15), .pressEnded)
     }
 
     func testToggleEmitsOnDownOnly() {
         var machine = ShortcutActivationMachine(mode: .toggle)
-        XCTAssertEqual(machine.process(.down), .toggled)
-        XCTAssertNil(machine.process(.up))
-        XCTAssertEqual(machine.process(.down), .toggled)
-        XCTAssertNil(machine.process(.up))
+        XCTAssertEqual(machine.process(.down, at: 10.0), .toggled)
+        XCTAssertNil(machine.process(.up, at: 10.1))
+        XCTAssertEqual(machine.process(.down, at: 11.0), .toggled)
+        XCTAssertNil(machine.process(.up, at: 11.1))
+    }
+
+    func testToggleDebounceAbsorbsRapidRepress() {
+        var machine = ShortcutActivationMachine(mode: .toggle, toggleDebounce: 0.3)
+        XCTAssertEqual(machine.process(.down, at: 10.0), .toggled)
+        XCTAssertNil(machine.process(.up, at: 10.05))
+        // Ré-appui 200 ms après le toggle : rebond, absorbé.
+        XCTAssertNil(machine.process(.down, at: 10.2),
+                     "un ré-appui < 300 ms ne doit pas stopper la session")
+        XCTAssertNil(machine.process(.up, at: 10.25))
+        // Ré-appui après le délai : stop légitime.
+        XCTAssertEqual(machine.process(.down, at: 10.6), .toggled)
+    }
+
+    func testToggleAbsorbedPressDoesNotRearmDebounce() {
+        // Le délai court depuis le dernier toggle ÉMIS, pas depuis l'appui
+        // absorbé : des appuis en rafale ne bloquent pas indéfiniment.
+        var machine = ShortcutActivationMachine(mode: .toggle, toggleDebounce: 0.3)
+        XCTAssertEqual(machine.process(.down, at: 10.0), .toggled)
+        XCTAssertNil(machine.process(.up, at: 10.05))
+        XCTAssertNil(machine.process(.down, at: 10.2))
+        XCTAssertNil(machine.process(.up, at: 10.25))
+        // 10.35 - 10.0 ≥ 0.3 : passe, même si l'appui absorbé date de 150 ms.
+        XCTAssertEqual(machine.process(.down, at: 10.35), .toggled)
+    }
+
+    func testToggleAutoRepeatWhileHeldStaysSilent() {
+        // Touche MAINTENUE en mode toggle : les keyDown d'auto-repeat sont
+        // déduplués par état, même une fois le délai anti-rebond écoulé.
+        var machine = ShortcutActivationMachine(mode: .toggle, toggleDebounce: 0.3)
+        XCTAssertEqual(machine.process(.down, at: 10.0), .toggled)
+        XCTAssertNil(machine.process(.down, at: 10.5), "auto-repeat après 500 ms : muet")
+        XCTAssertNil(machine.process(.down, at: 11.0))
+        XCTAssertNil(machine.process(.up, at: 11.5))
+        // Nouveau cycle après relâchement : toggle légitime.
+        XCTAssertEqual(machine.process(.down, at: 12.0), .toggled)
     }
 
     // MARK: - FnHoldMachine (mode b) : hold / tap bref / debounce
@@ -176,7 +222,10 @@ final class SystemHotkeyTests: XCTestCase {
         fn.available = false
         let service = HotkeyService(shortcutSource: shortcut, fnSource: fn)
         let collector = Collector()
-        collector.attach(service.start(configuration: .init(activationMode: .toggle)))
+        // Debounce neutralisé : les deux appuis injectés arrivent en < 300 ms réels.
+        collector.attach(service.start(
+            configuration: .init(activationMode: .toggle, toggleDebounce: 0)
+        ))
         defer { service.stop(); collector.cancel() }
 
         shortcut.continuation?.yield(.down)
@@ -186,6 +235,51 @@ final class SystemHotkeyTests: XCTestCase {
         let ok = await collector.waitForCount(2)
         XCTAssertTrue(ok, "attendu 2 événements, reçu \(collector.events)")
         XCTAssertEqual(collector.events, [.toggled, .toggled])
+    }
+
+    func testServiceDefaultConfigurationIsToggle() async {
+        // Défaut produit (retour client SuperWhisper) : appui simple = toggle.
+        let shortcut = MockShortcutSource()
+        let fn = MockFnSource()
+        fn.available = false
+        let service = HotkeyService(shortcutSource: shortcut, fnSource: fn)
+        let collector = Collector()
+        collector.attach(service.start())
+        defer { service.stop(); collector.cancel() }
+
+        shortcut.continuation?.yield(.down)
+        shortcut.continuation?.yield(.up)
+
+        let ok = await collector.waitForCount(1)
+        XCTAssertTrue(ok, "attendu 1 événement, reçu \(collector.events)")
+        XCTAssertEqual(collector.events, [.toggled],
+                       "sans configuration explicite, le raccourci doit être en mode toggle")
+    }
+
+    func testServiceToggleDebounceAbsorbsRapidDoublePress() async {
+        let shortcut = MockShortcutSource()
+        let fn = MockFnSource()
+        fn.available = false
+        let service = HotkeyService(shortcutSource: shortcut, fnSource: fn)
+        let collector = Collector()
+        // Debounce délibérément énorme : le second appui, injecté aussitôt,
+        // tombe TOUJOURS dans la fenêtre — déterministe, jamais flaky.
+        collector.attach(service.start(
+            configuration: .init(activationMode: .toggle, toggleDebounce: 10)
+        ))
+        defer { service.stop(); collector.cancel() }
+
+        shortcut.continuation?.yield(.down)
+        shortcut.continuation?.yield(.up)
+        shortcut.continuation?.yield(.down)
+        shortcut.continuation?.yield(.up)
+
+        let ok = await collector.waitForCount(1)
+        XCTAssertTrue(ok, "le premier appui doit émettre")
+        // Laisse la pompe digérer le double appui : rien d'autre ne doit sortir.
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(collector.events, [.toggled],
+                       "le ré-appui dans la fenêtre anti-rebond doit être absorbé")
     }
 
     func testServiceFnHoldEmitsPushToTalkAfterThreshold() async {
@@ -236,7 +330,8 @@ final class SystemHotkeyTests: XCTestCase {
         fn.available = false  // Accessibility absente → source Fn indisponible
         let service = HotkeyService(shortcutSource: shortcut, fnSource: fn)
         let collector = Collector()
-        collector.attach(service.start())
+        // Mode explicite : le sujet du test est le repli sans Fn, pas le défaut.
+        collector.attach(service.start(configuration: .init(activationMode: .pushToTalk)))
         defer { service.stop(); collector.cancel() }
 
         XCTAssertFalse(service.isFnMonitorActive,

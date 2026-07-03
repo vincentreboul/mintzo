@@ -28,6 +28,25 @@ enum SettingsStrings {
     static var shortcutLabel: String {
         pick("Diktaketa-lasterbidea", "Raccourci de dictée", "Dictation shortcut")
     }
+    static var shortcutBehaviorLabel: String {
+        pick("Lasterbidearen portaera", "Comportement du raccourci", "Shortcut behavior")
+    }
+    static var shortcutBehaviorPressOnce: String {
+        pick("Sakatu behin", "Appui simple", "Press once")
+    }
+    static var shortcutBehaviorHold: String {
+        pick("Eduki sakatuta", "Maintenir", "Hold")
+    }
+    static var shortcutBehaviorPressOnceNote: String {
+        pick("Sakatze batek grabaketa abiarazten du; hurrengoak gelditu eta transkribatzen du.",
+             "Un appui démarre l'enregistrement ; le suivant l'arrête et transcrit.",
+             "One press starts recording; the next one stops and transcribes.")
+    }
+    static var shortcutBehaviorHoldNote: String {
+        pick("Lasterbidea sakatuta dagoen bitartean grabatzen da; askatzean transkribatzen da.",
+             "L'enregistrement dure tant que le raccourci est maintenu ; le relâcher transcrit.",
+             "Recording lasts while the shortcut is held; releasing it transcribes.")
+    }
     static var fnToggle: String {
         pick("Fn tekla sakatuta diktatu",
              "Dicter en maintenant la touche Fn",

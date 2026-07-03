@@ -48,7 +48,8 @@ public struct KeyboardShortcutsEventSource: ShortcutEventSource {
 /// Hotkey global de dictée — deux modes cumulables :
 ///
 /// (a) **Raccourci configurable** (KeyboardShortcuts, défaut ⌥Espace, aucune
-///     permission) : push-to-talk OU toggle selon `Configuration.activationMode`.
+///     permission) : toggle (défaut — appui simple, anti-rebond 300 ms) OU
+///     push-to-talk selon `Configuration.activationMode`.
 /// (b) **Touche Fn maintenue** (CGEventTap, exige Accessibility) :
 ///     maintien ≥ 150 ms = push-to-talk, tap bref ignoré. Si la permission
 ///     manque ou le tap échoue → mode (a) seul, `isFnMonitorActive == false`,
@@ -61,19 +62,26 @@ public struct KeyboardShortcutsEventSource: ShortcutEventSource {
 public final class HotkeyService {
 
     public struct Configuration: Sendable {
-        /// Comportement du raccourci configurable (le mode Fn est toujours push-to-talk).
+        /// Comportement du raccourci configurable (le mode Fn est toujours
+        /// push-to-talk). Défaut : `.toggle` — appui simple, comme SuperWhisper
+        /// (préférence explicite du retour client).
         public var activationMode: ActivationMode
+        /// Anti-rebond du mode toggle : un ré-appui < 300 ms après le dernier
+        /// toggle est ignoré. Exposé pour les tests (comme `fnHoldThreshold`).
+        public var toggleDebounce: TimeInterval
         /// Active le mode « touche Fn maintenue » (si Accessibility disponible).
         public var fnKeyEnabled: Bool
         /// Seuil de maintien de la touche Fn (150 ms par défaut).
         public var fnHoldThreshold: TimeInterval
 
         public init(
-            activationMode: ActivationMode = .pushToTalk,
+            activationMode: ActivationMode = .toggle,
+            toggleDebounce: TimeInterval = 0.3,
             fnKeyEnabled: Bool = true,
             fnHoldThreshold: TimeInterval = 0.15
         ) {
             self.activationMode = activationMode
+            self.toggleDebounce = toggleDebounce
             self.fnKeyEnabled = fnKeyEnabled
             self.fnHoldThreshold = fnHoldThreshold
         }
@@ -115,7 +123,11 @@ public final class HotkeyService {
         let (stream, continuation) = AsyncStream.makeStream(of: HotkeyEvent.self)
         self.continuation = continuation
 
-        startShortcutPump(mode: configuration.activationMode, into: continuation)
+        startShortcutPump(
+            mode: configuration.activationMode,
+            toggleDebounce: configuration.toggleDebounce,
+            into: continuation
+        )
         if configuration.fnKeyEnabled {
             startFnPump(holdThreshold: configuration.fnHoldThreshold, into: continuation)
         }
@@ -135,13 +147,16 @@ public final class HotkeyService {
 
     private func startShortcutPump(
         mode: ActivationMode,
+        toggleDebounce: TimeInterval,
         into continuation: AsyncStream<HotkeyEvent>.Continuation
     ) {
         let transitions = shortcutSource.events()
         pumpTasks.append(Task { @MainActor in
-            var machine = ShortcutActivationMachine(mode: mode)
+            var machine = ShortcutActivationMachine(mode: mode, toggleDebounce: toggleDebounce)
             for await transition in transitions {
-                if let event = machine.process(transition) {
+                // Même horloge que FnKeyMonitor (CFAbsoluteTime) — le timestamp
+                // sert uniquement à l'anti-rebond du mode toggle.
+                if let event = machine.process(transition, at: CFAbsoluteTimeGetCurrent()) {
                     continuation.yield(event)
                 }
             }
