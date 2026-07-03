@@ -23,8 +23,9 @@ Vendor/llama.xcframework/
 .swiftpm/
 Package.resolved
 
-# Models (téléchargés au runtime, jamais commités)
-Models/
+# Models (téléchargés au runtime, jamais commités) — ancré racine :
+# ne doit pas masquer Sources/MintzoCore/Models/ (code Swift)
+/Models/
 *.gguf
 *.ggml
 *.mlmodelc
