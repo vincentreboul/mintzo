@@ -135,10 +135,12 @@ enum OnboardingSnapshots {
         }
 
         for appearanceName in ["light", "dark"] {
-            window.appearance = NSAppearance(
-                named: appearanceName == "dark" ? .darkAqua : .aqua
-            )
-            try? await Task.sleep(for: .milliseconds(500))
+            // Apparence posée au niveau APP (pas seulement fenêtre) : le
+            // contenu SwiftUI hébergé ne suit pas window.appearance seul.
+            let appearance = NSAppearance(named: appearanceName == "dark" ? .darkAqua : .aqua)
+            NSApplication.shared.appearance = appearance
+            window.appearance = appearance
+            try? await Task.sleep(for: .milliseconds(600))
             guard let view = window.contentView,
                   let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { continue }
             view.cacheDisplay(in: view.bounds, to: rep)
