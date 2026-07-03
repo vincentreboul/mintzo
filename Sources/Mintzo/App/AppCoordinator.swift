@@ -214,11 +214,11 @@ final class AppCoordinator {
     private func handleOutcome(_ outcome: DictationFlow.Outcome) {
         switch outcome {
         case .inserted:
-            hud.transition(to: .success)
+            hud.transition(to: .success(message: nil))
         case .clipboardOnly:
-            // Seul l'état erreur du HUD porte un message custom — utilisé ici pour
-            // l'info « ⌘V » (limite d'API HUD notée au rapport, pas un échec réel).
-            showHUDError(AppStrings.textOnClipboard)
+            // Mode « clipboard seul » (réglage ou repli) : un succès, pas une
+            // erreur — message custom « Arbelean — sakatu ⌘V », tenu 1,5 s.
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
         case .cancelled:
             hud.transition(to: .idle)
         case .failed(let failure):
@@ -553,7 +553,10 @@ final class AppCoordinator {
             hud.transition(to: .correcting)
         case "success":
             hud.transition(to: .transcribing)
-            hud.transition(to: .success)
+            hud.transition(to: .success(message: nil))
+        case "success-clipboard":
+            hud.transition(to: .transcribing)
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
         case "error":
             hud.transition(to: .error(message: "Euskarazko eredua falta da."))
         default:
@@ -571,7 +574,12 @@ final class AppCoordinator {
             try? await Task.sleep(for: dwell)
             hud.transition(to: .correcting)
             try? await Task.sleep(for: dwell)
-            hud.transition(to: .success)          // auto-dismiss 600 ms → idle
+            hud.transition(to: .success(message: nil))   // auto-dismiss 600 ms → idle
+            try? await Task.sleep(for: dwell)
+            hud.transition(to: .listening)
+            try? await Task.sleep(for: dwell)
+            hud.transition(to: .transcribing)
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess)) // 1,5 s → idle
             try? await Task.sleep(for: dwell)
             hud.transition(to: .listening)
             try? await Task.sleep(for: dwell)
@@ -615,9 +623,14 @@ final class AppCoordinator {
                 hud.transition(to: .correcting)
                 try? await Task.sleep(for: .milliseconds(500))
                 shoot("correcting")
-                hud.transition(to: .success)
+                hud.transition(to: .success(message: nil))
                 try? await Task.sleep(for: .milliseconds(800))
                 shoot("success")
+                hud.transition(to: .listening)
+                hud.transition(to: .transcribing)
+                hud.transition(to: .success(message: AppStrings.clipboardSuccess))
+                try? await Task.sleep(for: .milliseconds(800))
+                shoot("success-clipboard")
                 hud.transition(to: .listening)
                 hud.transition(to: .error(message: "Euskarazko eredua falta da."))
                 try? await Task.sleep(for: .milliseconds(800))

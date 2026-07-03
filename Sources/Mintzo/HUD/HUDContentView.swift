@@ -115,8 +115,8 @@ struct HUDContentView: View {
             listeningContent
         case .transcribing, .correcting:
             processingContent(for: state)
-        case .success:
-            successContent
+        case .success(let message):
+            successContent(message)
         case .error(let message):
             errorContent(message)
         }
@@ -183,18 +183,20 @@ struct HUDContentView: View {
         }
     }
 
-    // MARK: État 4 — succès (112 pt, 600 ms)
+    // MARK: État 4 — succès (112 pt « Itsatsita » 600 ms ; message custom ≤ 320 pt, 1,5 s)
 
-    private var successContent: some View {
+    private func successContent(_ message: String?) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(MzColor.success)
-            Text(MzStrings.inserted)
+            Text(message ?? MzStrings.inserted)
                 .font(MzFont.hudLabel)
                 .foregroundStyle(MzColor.ink)
                 .lineLimit(1)
+                .truncationMode(.middle)
         }
+        .padding(.horizontal, MzHUD.paddingH)
         .onAppear {
             successWashX = -1
             guard !reduceMotion else { return }
@@ -205,7 +207,7 @@ struct HUDContentView: View {
     /// Wash `MzGorri` 12 % qui balaye la capsule à l'insertion (300 ms, §4.3 état 4).
     @ViewBuilder
     private var successWash: some View {
-        if displayedState == .success {
+        if case .success = displayedState {
             GeometryReader { proxy in
                 LinearGradient(
                     colors: [.clear, MzColor.gorri.opacity(MzOpacity.tint), .clear],
@@ -238,20 +240,25 @@ struct HUDContentView: View {
     // MARK: Largeurs exactes par état (§4.3)
 
     private func capsuleWidth(for state: HUDState) -> CGFloat? {
-        if case .error(let message) = state {
-            return Self.errorWidth(message: message)
+        switch state {
+        case .error(let message):
+            return Self.contentWidth(message: message)
+        case .success(let message?):
+            return Self.contentWidth(message: message)
+        default:
+            return state.fixedWidth
         }
-        return state.fixedWidth
     }
 
-    /// Largeur au contenu pour l'erreur, plafonnée à 320 pt (§4.3 état 5).
-    static func errorWidth(message: String) -> CGFloat {
+    /// Largeur au contenu (erreur §4.3 état 5, succès à message custom) :
+    /// plancher 112 pt, plafond 320 pt.
+    static func contentWidth(message: String) -> CGFloat {
         let font = NSFont.systemFont(ofSize: 12, weight: .medium)
         let text = ceil((message as NSString).size(withAttributes: [.font: font]).width)
-        let icon: CGFloat = 18   // exclamationmark.triangle à 13 pt
+        let icon: CGFloat = 18   // exclamationmark.triangle / checkmark à 13 pt
         let safety: CGFloat = 4  // arrondis de rendu — jamais de troncature d'un texte qui tient
         let width = MzHUD.paddingH + icon + MzHUD.itemSpacing + text + safety + MzHUD.paddingH
-        return min(max(width, HUDState.success.fixedWidth ?? 112), HUDState.error(message: "").maxWidth)
+        return min(max(width, MzHUD.widthSuccess), MzHUD.widthErrorMax)
     }
 
     // MARK: Matériau (§4.1)
@@ -378,7 +385,7 @@ struct HUDContentView: View {
         case .listening: MzStrings.listening
         case .transcribing: MzStrings.transcribing
         case .correcting: MzStrings.correcting
-        case .success: MzStrings.inserted
+        case .success(let message): message ?? MzStrings.inserted
         case .error(let message): message
         }
     }

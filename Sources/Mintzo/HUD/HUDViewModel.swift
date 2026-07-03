@@ -3,7 +3,8 @@ import Observation
 
 // ViewModel du HUD — orchestre la machine d'états pure (HUDStateMachine.swift),
 // le timer m:ss, le buffer waveform (une barre / 66 ms) et les auto-transitions
-// (succès 600 ms, erreur 4 s). Spec : docs/design/design-language.md §4.
+// (succès 600 ms — 1,5 s si message custom —, erreur 4 s).
+// Spec : docs/design/design-language.md §4.
 
 @MainActor
 @Observable
@@ -26,6 +27,9 @@ final class HUDViewModel {
     private(set) var languagePulse = 0
     /// Limite technique de durée (s) — décompte Gorri sur les 30 dernières secondes. nil = illimité.
     var maxDuration: Int?
+    /// Tenue du succès à message custom (clipboard seul) : le temps de LIRE le
+    /// message, vs `MzMotion.successHoldDuration` (600 ms) pour « Itsatsita ».
+    static let customSuccessHoldDuration: TimeInterval = 1.5
     /// Désactivable pour figer succès/erreur (tests, previews). true en production.
     @ObservationIgnored var autoDismissEnabled = true
 
@@ -67,10 +71,15 @@ final class HUDViewModel {
             waveform.reset()
             detectedLanguage = nil
             startTicking()
-        case .success:
+        case .success(let message):
             stopTicking()
             if autoDismissEnabled {
-                autoDismissTask = autoDismiss(after: MzMotion.successHoldDuration)
+                // Message custom (ex. « Arbelean — sakatu ⌘V ») : 1,5 s, le temps
+                // de lire — vs 600 ms pour « Itsatsita » (§4.3 état 4).
+                let hold = message == nil
+                    ? MzMotion.successHoldDuration
+                    : Self.customSuccessHoldDuration
+                autoDismissTask = autoDismiss(after: hold)
             }
         case .error:
             stopTicking()

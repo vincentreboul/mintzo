@@ -50,11 +50,12 @@ enum AppStrings {
              "Transcription failed.")
     }
 
-    /// Texte livré sur le clipboard seulement (repli ou mode choisi) — le HUD ne
-    /// porte un message custom que via l'état erreur (limite d'API notée au rapport).
-    static var textOnClipboard: String {
-        pick("Testua arbelean dago — sakatu ⌘V.",
-             "Texte dans le presse-papiers — collez avec ⌘V.",
-             "Text on the clipboard — press ⌘V.")
+    /// Texte livré sur le clipboard seulement (réglage ou repli) — état HUD
+    /// `.success` à message custom, tenu 1,5 s (§4.3 état 4). Forme courte,
+    /// pas de point final (label, §9.1).
+    static var clipboardSuccess: String {
+        pick("Arbelean — sakatu ⌘V",
+             "Presse-papiers — collez avec ⌘V",
+             "On the clipboard — press ⌘V")
     }
 }
