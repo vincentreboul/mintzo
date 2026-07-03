@@ -37,3 +37,6 @@ Package.resolved
 # Deep-work
 .deep-work-active
 MERGE_GATE.md
+
+# Session tooling
+.claude/
