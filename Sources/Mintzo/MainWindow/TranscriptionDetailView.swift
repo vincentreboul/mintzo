@@ -1,10 +1,11 @@
 import SwiftUI
 import MintzoCore
 
-/// Vue détail d'une transcription — design-language.md §6.3.
-/// Corps New York 16/26, mesure max 640 pt, sélectionnable.
+/// Vue détail d'une transcription — design-language.md §6.3, amendement
+/// v1.2 : c'est LA surface éditoriale — une page `MzPaper` dans une fenêtre
+/// native. Corps New York 16/26, mesure max 640 pt, sélectionnable.
 /// Toggle discret « jatorrizkoa / zuzendua » (segmented 11 pt) seulement
-/// si un texte corrigé existe.
+/// si un texte corrigé existe. Le chrome (retour, sous-titre) reste système.
 struct TranscriptionDetailView: View {
 
     private enum Version: Hashable {
@@ -38,6 +39,9 @@ struct TranscriptionDetailView: View {
             .padding(24)
         }
         .background(MzColor.paper)
+        .navigationSubtitle(
+            "\(MzFormat.heure(transcription.date)) · \(MzFormat.duree(transcription.dureeAudio))"
+        )
     }
 
     private var displayedText: String {
