@@ -50,7 +50,9 @@ struct OnboardingModelView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(width: 236)
+        // Largeur naturelle : un frame plus large centrerait le contrôle
+        // dans son cadre et le décollerait de la marge de gauche.
+        .fixedSize()
     }
 
     // MARK: Zone d'essai
@@ -78,15 +80,18 @@ struct OnboardingModelView: View {
             .transition(.opacity)
         case .ready:
             VStack(alignment: .leading, spacing: 10) {
-                trialHeader
-                trialField
-                HStack(alignment: .firstTextBaseline) {
-                    Text(OnboardingStrings.trialHint)
-                        .font(.system(size: 11))
-                        .foregroundStyle(MzColor.inkTertiary)
+                // Le bouton d'essai vit sur la ligne du titre de section :
+                // loin du « Amaitu » de la navigation, aucune concurrence
+                // entre deux capsules Gorri dans le même coin.
+                HStack(alignment: .center) {
+                    trialHeader
                     Spacer(minLength: 16)
                     trialButton
                 }
+                trialField
+                Text(OnboardingStrings.trialHint)
+                    .font(.system(size: 11))
+                    .foregroundStyle(MzColor.inkTertiary)
             }
             .transition(.opacity)
         }
@@ -219,21 +224,27 @@ private struct ModelCardView: View {
             .foregroundStyle(MzColor.success)
             .transition(.opacity)
             .accessibilityElement(children: .combine)
-        } else {
-            Button(row.errorMessage == nil
-                   ? OnboardingStrings.download
-                   : OnboardingStrings.retry, action: onDownload)
+        } else if row.errorMessage == nil {
+            // Le téléchargement est LA raison d'être de l'écran : seul bouton
+            // proéminent du moment (la zone d'essai n'existe pas encore).
+            Button(OnboardingStrings.download, action: onDownload)
                 .buttonStyle(.borderedProminent)
                 .tint(MzColor.gorri)
+                .controlSize(.regular)
+        } else {
+            // Après une erreur : le texte systemRed porte déjà l'alerte, le
+            // bouton reste sobre — les deux rouges ne se mélangent pas (§2.2).
+            Button(OnboardingStrings.retry, action: onDownload)
+                .buttonStyle(.bordered)
                 .controlSize(.regular)
         }
     }
 
     private func progressBlock(fraction: Double) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            ProgressView(value: fraction)
-                .progressViewStyle(.linear)
-                .tint(MzColor.gorri)
+        VStack(alignment: .leading, spacing: 6) {
+            // Barre 2 pt rail hairline / remplissage Gorri (§6.3) — la même
+            // que la file d'attente de la fenêtre principale.
+            MzProgressBar(fraction: fraction)
             HStack {
                 Text(OnboardingStrings.downloading)
                     .font(.system(size: 11))

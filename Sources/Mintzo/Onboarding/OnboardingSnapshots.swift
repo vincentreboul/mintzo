@@ -98,5 +98,59 @@ enum OnboardingSnapshots {
         print("ONBOARDING SNAPSHOTS OK → \(dir.path)")
         exit(0)
     }
+
+    // MARK: - Capture live de la vraie fenêtre
+
+    static let liveEnvironmentKey = "MINTZO_ONBOARDING_LIVE_SNAPSHOT_DIR"
+
+    /// Capture la fenêtre d'onboarding RÉELLE via `cacheDisplay` (comme le
+    /// harnais HUD) : rend les contrôles AppKit (segmented, TextEditor,
+    /// boutons) que `ImageRenderer` ne rastérise pas — sans permission
+    /// d'enregistrement d'écran. Combiner avec `MINTZO_ONBOARDING_SCREEN`
+    /// pour choisir l'écran. Light + dark, puis quitte.
+    static func runLiveCaptureIfRequested(controller: OnboardingController) async {
+        guard let path = ProcessInfo.processInfo.environment[liveEnvironmentKey] else { return }
+        let dir = URL(fileURLWithPath: path, isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        // Laisser la fenêtre se présenter et poser son premier rendu.
+        try? await Task.sleep(for: .seconds(1.5))
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.frame.width >= 600 }) else {
+            NSLog("MINTZO-ONBOARDING-SNAPSHOT: fenêtre live introuvable")
+            exit(1)
+        }
+        // Fenêtre key + app active : sinon macOS rend les contrôles en état
+        // inactif (boutons proéminents grisés) — capture non représentative.
+        // App accessoire lancée du terminal : l'activation coopérative simple
+        // est refusée, on force (harnais QA uniquement).
+        NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        NSApp.activate()
+        window.makeKeyAndOrderFront(nil)
+        try? await Task.sleep(for: .milliseconds(600))
+
+        let screenName = switch controller.journey.screen {
+        case .ongiEtorri: "1-ongi-etorri"
+        case .baimenak: "2-baimenak"
+        case .eredua: "3-eredua"
+        }
+
+        for appearanceName in ["light", "dark"] {
+            window.appearance = NSAppearance(
+                named: appearanceName == "dark" ? .darkAqua : .aqua
+            )
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let view = window.contentView,
+                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { continue }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            let url = dir.appendingPathComponent(
+                "mintzo-onboarding-live-\(screenName)-\(appearanceName).png"
+            )
+            try? rep.representation(using: .png, properties: [:])?.write(to: url)
+            NSLog("MINTZO-ONBOARDING-SNAPSHOT: écrit %@", url.lastPathComponent)
+        }
+
+        print("ONBOARDING LIVE SNAPSHOTS OK → \(dir.path)")
+        exit(0)
+    }
 }
 #endif

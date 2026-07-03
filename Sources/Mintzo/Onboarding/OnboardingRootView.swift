@@ -39,14 +39,40 @@ struct OnboardingRootView: View {
             controller.finish()
             dismiss()
         }
+        #if DEBUG
+        // Capture QA : l'app accessoire lancée du terminal ne peut pas devenir
+        // active (activation coopérative) → les contrôles rendraient à l'état
+        // inactif. On force l'état « key » pour une capture représentative.
+        .transformEnvironment(\.controlActiveState) { state in
+            if ProcessInfo.processInfo.environment[OnboardingSnapshots.liveEnvironmentKey] != nil {
+                state = .key
+            }
+        }
+        #endif
         .task {
             #if DEBUG
             if ProcessInfo.processInfo.environment[OnboardingSnapshots.environmentKey] != nil {
                 await OnboardingSnapshots.runIfRequested(controller: controller)
                 return
             }
+            // QA live : `MINTZO_ONBOARDING_SCREEN=baimenak|eredua` ouvre la
+            // fenêtre réelle directement sur un écran (capture des contrôles
+            // AppKit que ImageRenderer ne rastérise pas).
+            if let target = ProcessInfo.processInfo.environment["MINTZO_ONBOARDING_SCREEN"] {
+                let screen: OnboardingScreen? = switch target {
+                case "baimenak": .baimenak
+                case "eredua": .eredua
+                default: nil
+                }
+                if let screen {
+                    while controller.journey.screen != screen { controller.advance() }
+                }
+            }
             #endif
             controller.start()
+            #if DEBUG
+            await OnboardingSnapshots.runLiveCaptureIfRequested(controller: controller)
+            #endif
             // App accessoire (LSUIElement) : sans activation, la fenêtre
             // apparaîtrait derrière l'app frontale au premier lancement.
             NSApp.activate()
