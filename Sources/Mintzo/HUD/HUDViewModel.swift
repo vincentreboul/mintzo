@@ -16,6 +16,12 @@ final class HUDViewModel {
     private(set) var language: HUDLanguage = .eu
     /// Langue résolue par l'auto-détection (badge « a→ » → langue en Gorri).
     private(set) var detectedLanguage: HUDLanguage?
+    /// Langue effective de la session, résolue AU STOP par le flow (fixe,
+    /// détectée ou repli) — celle de l'historique. nil tant que non résolue.
+    private(set) var sessionLanguage: HUDLanguage?
+    /// Langue de repli du mode auto (réglage utilisateur) — rafraîchie par le
+    /// coordinator à chaque début de session. Labels avant détection (§4.4).
+    var autoFallbackLanguage: HUDLanguage = .eu
     private(set) var elapsedSeconds: Int = 0
     /// 26 barres visibles + 1 barre entrante (défilement continu du sismographe).
     private(set) var waveform = WaveformBuffer(capacity: MzHUD.waveformBarCount + 1)
@@ -39,6 +45,18 @@ final class HUDViewModel {
 
     /// Badge : langue détectée (auto résolu) sinon langue choisie.
     var badgeLanguage: HUDLanguage { language == .auto ? (detectedLanguage ?? .auto) : language }
+
+    /// Langue des labels d'état de la capsule (« Transkribatzen… »,
+    /// « Zuzentzen… », succès, presse-papiers) : la langue de la SESSION en
+    /// cours — jamais celle de l'interface (retour client). Toujours concrète.
+    var labelLanguage: HUDLanguage {
+        HUDSessionLabel.language(
+            session: sessionLanguage,
+            selection: language,
+            detected: detectedLanguage,
+            fallback: autoFallbackLanguage
+        )
+    }
 
     // MARK: Callbacks (câblés vague 3 — moteur audio / insertion)
 
@@ -72,6 +90,7 @@ final class HUDViewModel {
             currentLevel = WaveformMapper.minHeight
             waveform.reset()
             detectedLanguage = nil
+            sessionLanguage = nil
             startTicking()
         case .success(let message):
             stopTicking()
@@ -146,6 +165,14 @@ final class HUDViewModel {
     func setDetectedLanguage(_ detected: HUDLanguage) {
         guard language == .auto, detected != .auto else { return }
         detectedLanguage = detected
+    }
+
+    /// Langue effective de la session, rendue au STOP par le flow — les labels
+    /// d'état basculent dessus (une bascule de badge pendant le traitement ne
+    /// concerne que la session suivante). Réinitialisée à chaque écoute.
+    func setSessionLanguage(_ resolved: HUDLanguage) {
+        guard resolved != .auto else { return }
+        sessionLanguage = resolved
     }
 
     // MARK: Niveau audio

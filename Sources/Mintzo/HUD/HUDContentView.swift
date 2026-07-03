@@ -195,7 +195,10 @@ struct HUDContentView: View {
     // MARK: États 2-3 — traitement (156 pt, trait + shimmer + label)
 
     private func processingContent(for state: HUDState) -> some View {
-        let label = state == .correcting ? MzStrings.correcting : MzStrings.transcribing
+        // Langue de la SESSION (détectée/choisie au stop), pas de l'interface.
+        let label = state == .correcting
+            ? MzStrings.correcting(session: viewModel.labelLanguage)
+            : MzStrings.transcribing(session: viewModel.labelLanguage)
         return HStack(spacing: MzHUD.itemSpacing) {
             ProcessingTraitView(reduceMotion: reduceMotion)
             Text(label)
@@ -215,7 +218,7 @@ struct HUDContentView: View {
             Image(systemName: "checkmark")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(MzColor.success)
-            Text(message ?? MzStrings.inserted)
+            Text(message ?? MzStrings.inserted(session: viewModel.labelLanguage))
                 .font(MzFont.hudLabel)
                 .foregroundStyle(MzColor.ink)
                 .lineLimit(1)
@@ -408,9 +411,10 @@ struct HUDContentView: View {
         switch displayedState {
         case .idle: ""
         case .listening: MzStrings.listening
-        case .transcribing: MzStrings.transcribing
-        case .correcting: MzStrings.correcting
-        case .success(let message): message ?? MzStrings.inserted
+        // VoiceOver dit la même chose que l'œil : langue de session (§10).
+        case .transcribing: MzStrings.transcribing(session: viewModel.labelLanguage)
+        case .correcting: MzStrings.correcting(session: viewModel.labelLanguage)
+        case .success(let message): message ?? MzStrings.inserted(session: viewModel.labelLanguage)
         case .error(let message): message
         }
     }

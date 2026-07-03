@@ -141,6 +141,13 @@ final class AppCoordinator {
         observeIconAnimation()
 
         #if DEBUG
+        // QA : force la langue de SESSION du harnais (`MINTZO_HUD_LANG=eu|fr|auto`)
+        // — les labels d'état la parlent, indépendamment de MINTZO_UI_LANG.
+        // hud.setLanguage seul : rien n'est persisté dans les réglages.
+        if let forced = ProcessInfo.processInfo.environment["MINTZO_HUD_LANG"],
+           let sessionLanguage = HUDLanguage(rawValue: forced) {
+            hud.setLanguage(sessionLanguage)
+        }
         if ProcessInfo.processInfo.environment["MINTZO_HUD_PREVIEW"] == "1" {
             startHUDPreview()
         }
@@ -242,6 +249,11 @@ final class AppCoordinator {
         flow.onLanguageDetected = { [weak self] language in
             self?.hud.setDetectedLanguage(HUDLanguage(language))
         }
+        // Langue effective résolue au stop (fixe/détectée/repli — celle de
+        // l'historique) : les labels d'état du HUD la parlent (retour client).
+        flow.onSessionLanguageResolved = { [weak self] language in
+            self?.hud.setSessionLanguage(HUDLanguage(language))
+        }
 
         // Clic capsule pendant l'écoute = stop (§4.1) ; clic erreur = détail :
         // fenêtre principale, ou Réglages > Ereduak si le modèle manque.
@@ -277,6 +289,9 @@ final class AppCoordinator {
         case .idle:
             removeEscapeMonitors() // l'état final du HUD est posé par l'outcome
         case .listening:
+            // Repli du mode auto lu FRAIS à chaque session (l'onboarding et les
+            // réglages l'écrivent sans passer par ici) : labels avant détection.
+            hud.autoFallbackLanguage = HUDLanguage(AppSettings.fallbackLanguage)
             hud.transition(to: .listening)
             installEscapeMonitors()
         case .transcribing:
@@ -294,8 +309,9 @@ final class AppCoordinator {
             hud.transition(to: .success(message: nil))
         case .clipboardOnly:
             // Mode « clipboard seul » (réglage ou repli) : un succès, pas une
-            // erreur — message custom « Arbelean — sakatu ⌘V », tenu 1,5 s.
-            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
+            // erreur — message custom « Arbelean — sakatu ⌘V », tenu 1,5 s,
+            // dans la langue de la session (résolue avant l'outcome).
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess(session: hud.labelLanguage)))
         case .cancelled:
             hud.transition(to: .idle)
         case .failed(let failure):
@@ -667,7 +683,7 @@ final class AppCoordinator {
             hud.transition(to: .success(message: nil))
         case "success-clipboard":
             hud.transition(to: .transcribing)
-            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess(session: hud.labelLanguage)))
         case "error":
             hud.transition(to: .error(message: "Euskarazko eredua falta da."))
         default:
@@ -690,7 +706,7 @@ final class AppCoordinator {
             hud.transition(to: .listening)
             try? await Task.sleep(for: dwell)
             hud.transition(to: .transcribing)
-            hud.transition(to: .success(message: AppStrings.clipboardSuccess)) // 1,5 s → idle
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess(session: hud.labelLanguage))) // 1,5 s → idle
             try? await Task.sleep(for: dwell)
             hud.transition(to: .listening)
             try? await Task.sleep(for: dwell)
@@ -739,7 +755,7 @@ final class AppCoordinator {
                 shoot("success")
                 hud.transition(to: .listening)
                 hud.transition(to: .transcribing)
-                hud.transition(to: .success(message: AppStrings.clipboardSuccess))
+                hud.transition(to: .success(message: AppStrings.clipboardSuccess(session: hud.labelLanguage)))
                 try? await Task.sleep(for: .milliseconds(800))
                 shoot("success-clipboard")
                 hud.transition(to: .listening)

@@ -34,13 +34,37 @@ enum MzStrings {
         }
     }
 
+    /// Variante routée par la langue de SESSION de dictée (eu/fr — jamais en) :
+    /// les labels d'état de la capsule parlent la langue dictée, pas celle de
+    /// l'interface (retour client : « quand on parle en basque, le texte
+    /// “Transcription” doit être en basque »).
+    private static func pick(_ eu: String, _ fr: String, session: HUDLanguage) -> String {
+        session == .fr ? fr : eu
+    }
+
     // MARK: HUD (§4.3, §9.2)
 
     /// État écoute — VoiceOver uniquement (le HUD montre la waveform, pas de label).
     static var listening: String { pick("Entzuten…", "Écoute…", "Listening…") }
+    /// Langue d'UI — contextes hors capsule (ex. zone d'essai de l'onboarding).
     static var transcribing: String { pick("Transkribatzen…", "Transcription…", "Transcribing…") }
     static var correcting: String { pick("Zuzentzen…", "Correction…", "Correcting…") }
     static var inserted: String { pick("Itsatsita", "Inséré", "Inserted") }
+
+    // Labels d'état de la capsule : langue de la SESSION en cours (celle
+    // détectée/choisie au stop — celle de l'historique), résolue par
+    // `HUDViewModel.labelLanguage`. Badge et timer inchangés (§4.4).
+    static func transcribing(session language: HUDLanguage) -> String {
+        pick("Transkribatzen…", "Transcription…", session: language)
+    }
+
+    static func correcting(session language: HUDLanguage) -> String {
+        pick("Zuzentzen…", "Correction…", session: language)
+    }
+
+    static func inserted(session language: HUDLanguage) -> String {
+        pick("Itsatsita", "Inséré", session: language)
+    }
     /// Action VoiceOver de la capsule (§10 : la capsule est un bouton « Gelditu »).
     static var stop: String { pick("Gelditu", "Arrêter", "Stop") }
     /// Croix d'annulation de la capsule (tooltip + VoiceOver) : abandon de la

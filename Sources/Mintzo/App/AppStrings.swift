@@ -52,10 +52,12 @@ enum AppStrings {
 
     /// Texte livré sur le clipboard seulement (réglage ou repli) — état HUD
     /// `.success` à message custom, tenu 1,5 s (§4.3 état 4). Forme courte,
-    /// pas de point final (label, §9.1).
-    static var clipboardSuccess: String {
-        pick("Arbelean — sakatu ⌘V",
-             "Presse-papiers — collez avec ⌘V",
-             "On the clipboard — press ⌘V")
+    /// pas de point final (label, §9.1). Routé par la langue de la SESSION
+    /// (comme les autres labels d'état de la capsule — retour client),
+    /// jamais par la langue de l'interface.
+    static func clipboardSuccess(session language: HUDLanguage) -> String {
+        language == .fr
+            ? "Presse-papiers — collez avec ⌘V"
+            : "Arbelean — sakatu ⌘V"
     }
 }
