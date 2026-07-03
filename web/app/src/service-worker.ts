@@ -13,16 +13,19 @@
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-import { build, files, version } from '$service-worker';
+import { build, files, prerendered, version } from '$service-worker';
 
 const CACHE = `mintzo-${version}`;
 const ASSETS = [...build, ...files];
+/* pages prérendues incluses au precache : le repli hors connexion
+   fonctionne dès l'installation, pas seulement après une visite */
+const PRECACHE = [...ASSETS, ...prerendered];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
 		caches
 			.open(CACHE)
-			.then((cache) => cache.addAll(ASSETS))
+			.then((cache) => cache.addAll(PRECACHE))
 			.then(() => sw.skipWaiting())
 	);
 });
