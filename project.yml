@@ -24,6 +24,8 @@ targets:
       - Sources/Mintzo
     dependencies:
       - target: MintzoCore
+      - framework: Vendor/whisper.xcframework
+        embed: true
     info:
       path: Sources/Mintzo/Info.plist
       properties:
@@ -47,6 +49,9 @@ targets:
     platform: macOS
     sources:
       - Sources/MintzoCore
+    dependencies:
+      - framework: Vendor/whisper.xcframework
+        embed: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: eus.mintzo.MintzoCore
@@ -61,3 +66,5 @@ targets:
       - Tests/MintzoCoreTests
     dependencies:
       - target: MintzoCore
+      - framework: Vendor/whisper.xcframework
+        embed: true
