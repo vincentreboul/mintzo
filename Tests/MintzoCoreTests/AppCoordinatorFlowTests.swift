@@ -183,12 +183,14 @@ private struct FlowHarness {
         var outcomes: [DictationFlow.Outcome] = []
         var phases: [DictationFlow.Phase] = []
         var detectedLanguages: [Language] = []
+        var resolvedLanguages: [Language] = []
     }
     private let log = EventLog()
 
     var outcomes: [DictationFlow.Outcome] { log.outcomes }
     var phases: [DictationFlow.Phase] { log.phases }
     var detectedLanguages: [Language] { log.detectedLanguages }
+    var resolvedLanguages: [Language] { log.resolvedLanguages }
 
     init(modelsInstalled: Bool = true, missingLanguages: Set<Language> = []) {
         flow = DictationFlow(
@@ -203,6 +205,7 @@ private struct FlowHarness {
         flow.onOutcome = { log.outcomes.append($0) }
         flow.onPhaseChange = { log.phases.append($0) }
         flow.onLanguageDetected = { log.detectedLanguages.append($0) }
+        flow.onSessionLanguageResolved = { log.resolvedLanguages.append($0) }
     }
 
     /// Dictée complète : press → écoute effective → release → outcome.
@@ -690,6 +693,52 @@ final class AppCoordinatorFlowTests: XCTestCase {
 
         XCTAssertEqual(harness.transcriber.lastLanguage, "fr")
         XCTAssertEqual(harness.history.records.first?.langue, .fr)
+    }
+
+    // MARK: Langue de session résolue au stop (labels HUD — retour client)
+
+    func testSessionLanguageResolvedFiresWithFixedLanguage() async throws {
+        // Langue fixe : la résolution rend cette langue, une fois par session —
+        // le HUD en dérive « Transcription… » vs « Transkribatzen… ».
+        let harness = FlowHarness()
+        harness.transcriber.textToReturn = "bonjour"
+
+        try await harness.runFullSession(language: .french)
+
+        XCTAssertEqual(harness.resolvedLanguages, [.french])
+    }
+
+    func testSessionLanguageResolvedMatchesDetectedLanguage() async throws {
+        // Mode auto, verdict au stop : la langue résolue = la langue détectée =
+        // celle de l'historique (les labels racontent la même histoire).
+        let harness = FlowHarness()
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.9)
+        harness.transcriber.textToReturn = "bonjour"
+
+        try await harness.runFullSession(selection: .auto(fallback: .basque))
+
+        XCTAssertEqual(harness.resolvedLanguages, [.french])
+        XCTAssertEqual(harness.history.records.first?.langue, .fr)
+    }
+
+    func testSessionLanguageResolvedFallsBackWhenDetectionUnavailable() async throws {
+        // Mode auto sans détection : résolution = langue de repli.
+        let harness = FlowHarness()
+        harness.detector.available = false
+
+        try await harness.runFullSession(selection: .auto(fallback: .basque))
+
+        XCTAssertEqual(harness.resolvedLanguages, [.basque])
+    }
+
+    func testSessionLanguageNotResolvedOnPreListeningFailure() async throws {
+        // Modèle plancher absent : la session n'existe pas — aucune résolution.
+        let harness = FlowHarness(modelsInstalled: false)
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertTrue(harness.resolvedLanguages.isEmpty)
     }
 
     // MARK: Insertion dégradée / clipboard

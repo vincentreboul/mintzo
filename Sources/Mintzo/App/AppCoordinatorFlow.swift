@@ -194,6 +194,10 @@ final class DictationFlow {
     /// Mode auto : langue détectée avec confiance suffisante PENDANT l'écoute —
     /// le badge « a→ » bascule sur elle en Gorri (§4.2/§4.4).
     var onLanguageDetected: (@MainActor (Language) -> Void)?
+    /// Langue effective de la session, résolue au stop (fixe, détectée ou repli) —
+    /// celle de la transcription ET de l'historique. Le HUD s'en sert pour parler
+    /// la langue de la session (« Transkribatzen… » vs « Transcription… »).
+    var onSessionLanguageResolved: (@MainActor (Language) -> Void)?
 
     // MARK: État
 
@@ -422,9 +426,11 @@ final class DictationFlow {
         }
 
         // Langue effective de la session : fixe, détectée, ou repli. Elle fait
-        // foi pour la transcription, la correction ET l'historique (§4.4).
+        // foi pour la transcription, la correction, l'historique (§4.4) — et
+        // les labels d'état du HUD (langue de session, pas d'interface).
         let language = await resolveSessionLanguage(samples: samples)
         guard !Task.isCancelled else { return }
+        onSessionLanguageResolved?(language)
 
         let result: TranscriptionResult
         do {
