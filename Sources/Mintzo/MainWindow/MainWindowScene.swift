@@ -2,7 +2,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 import MintzoCore
 
-/// Scène de la fenêtre principale — design-language.md §6.
+/// Scène de la fenêtre principale — design-language.md §6, amendement v1.2 :
+/// chrome 100 % natif (fond de fenêtre système, toolbar unifiée, matériaux
+/// Tahoe standard) ; l'identité éditoriale vit dans les surfaces de lecture.
 /// Défaut 760 × 560 pt, min 560 × 400. Le câblage dans `MintzoApp`
 /// arrive en vague 3 : `MainWindowScene(store:queue:onFilesDropped:)`.
 struct MainWindowScene: Scene {
@@ -10,6 +12,7 @@ struct MainWindowScene: Scene {
     var queue: (any QueueDisplaying)?
     var onFilesDropped: ([URL]) -> Void
 
+    @MainActor
     init(
         store: HistoryStore,
         queue: (any QueueDisplaying)? = nil,
@@ -18,10 +21,14 @@ struct MainWindowScene: Scene {
         self.store = store
         self.queue = queue
         self.onFilesDropped = onFilesDropped
+        #if DEBUG
+        MainWindowSnapshots.scheduleIfRequested()
+        #endif
     }
 
     /// Convenience : store standard sur disque, repli mémoire si le disque
     /// est indisponible (la fenêtre doit toujours pouvoir s'ouvrir).
+    @MainActor
     init() {
         let store = (try? HistoryStore.standard()) ?? (try? HistoryStore.inMemory())
         guard let store else {
@@ -45,6 +52,8 @@ struct MainWindowScene: Scene {
 }
 
 /// Vue racine : liste + zone de drop fenêtre entière (§6.3).
+/// Aucun fond custom — la fenêtre hérite du look système ; les contrôles
+/// standards sont teintés par l'accent Gorri (§2.1).
 struct MainWindowRootView: View {
     let store: HistoryStore
     var queue: (any QueueDisplaying)?
@@ -69,7 +78,7 @@ struct MainWindowRootView: View {
             }
         }
         .animation(MzMotion.enter, value: isDropTargeted)
-        .background(MzColor.paper)
+        .tint(MzColor.gorri)
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {

@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// Overlay de drop fenêtre entière — design-language.md §6.3.
-/// Inset 12 pt, rayon 14 pt, bordure dashed 1.5 pt `MzGorri` (dash 6/4),
+/// Overlay de drop fenêtre entière — design-language.md §6.3, amendement
+/// v1.2 : matériau système (`.regularMaterial`), inset 12 pt, rayon 14 pt.
+/// La bordure dashed 1.5 pt `MzGorri` (dash 6/4) est conservée — c'est
+/// l'accent d'identité sur la couche fonctionnelle.
 /// `arrow.down.doc` 28 pt + « Askatu hemen transkribatzeko » 15 pt Medium.
-/// Fallback macOS 15 : `MzPaper` à 92 % (le verre arrive avec macOS 26).
 struct DropOverlayView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 14)
-                .fill(MzColor.paper.opacity(0.92))
+                .fill(.regularMaterial)
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(
                     MzColor.gorri,
@@ -20,7 +21,7 @@ struct DropOverlayView: View {
                     .foregroundStyle(MzColor.gorri)
                 Text(MzL10n.dropHint)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(MzColor.ink)
+                    .foregroundStyle(.primary)
             }
         }
         .padding(12)

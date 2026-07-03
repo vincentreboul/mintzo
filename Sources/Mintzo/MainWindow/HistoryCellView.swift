@@ -2,15 +2,17 @@ import SwiftUI
 import AppKit
 import MintzoCore
 
-/// Cellule d'historique — design-language.md §6.3.
-/// Extrait New York 15/22 (2 lignes max), méta SF 11 secondaire,
-/// hover : fond `MzSurfaceHover` + bouton copier `doc.on.doc` (fade 160 ms)
-/// qui devient `checkmark` `MzSuccess` 800 ms après copie réelle.
+/// Contenu d'une rangée d'historique — la surface de lecture (§6.3,
+/// amendement v1.2) : extrait New York 15/22 (2 lignes max), ligne méta
+/// SF 11 monospacedDigit, tag langue Gorri 12 %. La rangée elle-même est
+/// native (`List` + `NavigationLink`) : aucun fond custom, la sélection et
+/// le focus sont ceux du système. Au hover : bouton copier `doc.on.doc`
+/// en trailing (fade 160 ms) qui devient `checkmark` `MzSuccess` 800 ms
+/// après copie réelle ; clic droit : menu contextuel natif « Copier ».
 struct HistoryCellView: View {
     let transcription: Transcription
     /// Termes à surligner (`MzGorri` 24 %) en mode recherche.
     var highlightTerms: [String] = []
-    let onOpen: () -> Void
 
     @State private var isHovered = false
     @State private var justCopied = false
@@ -27,22 +29,21 @@ struct HistoryCellView: View {
             metaLine
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(isHovered ? MzColor.surfaceHover : .clear)
+        .padding(.vertical, 6)
         .overlay(alignment: .trailing) {
             if isHovered {
                 copyButton
-                    .padding(.trailing, 14)
                     .transition(.opacity)
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture(perform: onOpen)
         .onHover { hovering in
             withAnimation(MzMotion.micro) { isHovered = hovering }
         }
+        .contextMenu {
+            Button(MzL10n.copy, systemImage: "doc.on.doc", action: copy)
+        }
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Extrait (surlignage recherche : MzGorri 24 %)
@@ -114,7 +115,7 @@ struct HistoryCellView: View {
         Button(action: copy) {
             Image(systemName: justCopied ? "checkmark" : "doc.on.doc")
                 .font(.system(size: 13, weight: justCopied ? .semibold : .regular))
-                .foregroundStyle(justCopied ? MzColor.success : MzColor.inkSecondary)
+                .foregroundStyle(justCopied ? MzColor.success : Color.secondary)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }

@@ -43,6 +43,13 @@ enum MzL10n {
     static var filterDiktaketak: String { t("Diktaketak", "Dictées", "Dictations") }
     static var filterFitxategiak: String { t("Fitxategiak", "Fichiers", "Files") }
     static var searchPrompt: String { t("Bilatu…", "Rechercher…", "Search…") }
+    /// Titre système de l'état vide (`ContentUnavailableView`) — la phrase
+    /// éditoriale canonique reste `emptyTitle`, en serif dans la description.
+    static var emptyHeadline: String {
+        t("Oraindik ez dago transkripziorik",
+          "Aucune transcription pour l\u{2019}instant",
+          "No transcriptions yet")
+    }
     static var emptyTitle: String {
         t("Sakatu Fn eta hitz egin.", "Appuyez sur Fn et parlez.", "Press Fn and speak.")
     }

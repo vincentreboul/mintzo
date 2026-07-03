@@ -1,9 +1,12 @@
 import SwiftUI
 import MintzoCore
 
-/// Fenêtre principale — le « journal composé » (design-language.md §6).
-/// Une seule colonne : file d'attente épinglée (si active), sections par jour
-/// (gaur / atzo / dates), cellules serif dans des conteneurs `MzSurface`.
+/// Fenêtre principale — chrome 100 % natif macOS (amendement v1.2 du
+/// design language) : `List` native `.inset` avec sections par jour,
+/// toolbar unifiée (titre, filtre segmented, `.searchable`), fonds système.
+/// L'identité éditoriale (« journal composé », §6) vit DANS les rangées :
+/// extrait serif New York 15/22, ligne méta monospacedDigit, tag langue
+/// Gorri 12 %, en-têtes de section en petites capitales sobres.
 struct HistoryListView: View {
 
     enum SourceFilter: Hashable, CaseIterable {
@@ -13,95 +16,51 @@ struct HistoryListView: View {
     let store: HistoryStore
     private let queue: (any QueueDisplaying)?
     private let onOpenDetail: ((Transcription) -> Void)?
-    private let staticSnapshot: Bool
 
     @State private var transcriptions: [Transcription]
     @State private var searchText = ""
     @State private var searchResults: [Transcription] = []
     @State private var filter: SourceFilter = .dena
-    @State private var selection: Transcription?
 
     /// - Parameters:
     ///   - store: store d'historique (observé en continu).
     ///   - queue: source d'affichage de la file d'attente (câblage vague 3).
     ///   - initialTranscriptions: contenu affiché avant la première émission
-    ///     de l'observation (previews, rendus QA).
-    ///   - staticSnapshot: `true` pour un rendu figé via `ImageRenderer`
-    ///     (QA visuelle, previews) — sans `NavigationStack`/toolbar/searchable
-    ///     ni `ScrollView`, qu'`ImageRenderer` ne rend pas.
+    ///     de l'observation (previews, harnais QA).
+    ///   - onOpenDetail: remplace la navigation push (câblage externe) ;
+    ///     nil = `NavigationLink` natif vers le détail.
     init(
         store: HistoryStore,
         queue: (any QueueDisplaying)? = nil,
         initialTranscriptions: [Transcription] = [],
-        onOpenDetail: ((Transcription) -> Void)? = nil,
-        staticSnapshot: Bool = false
+        onOpenDetail: ((Transcription) -> Void)? = nil
     ) {
         self.store = store
         self.queue = queue
         self.onOpenDetail = onOpenDetail
-        self.staticSnapshot = staticSnapshot
         _transcriptions = State(initialValue: initialTranscriptions)
     }
 
     var body: some View {
-        Group {
-            if staticSnapshot {
-                framedContent
-            } else {
-                NavigationStack {
-                    framedContent
-                        .navigationTitle("Mintzo")
-                        .navigationDestination(item: $selection) { transcription in
-                            TranscriptionDetailView(transcription: transcription)
-                        }
-                        .toolbar {
-                            ToolbarItem(placement: .principal) {
-                                filterPicker
-                            }
-                        }
-                        .searchable(
-                            text: $searchText,
-                            placement: .toolbar,
-                            prompt: Text(MzL10n.searchPrompt)
-                        )
+        NavigationStack {
+            content
+                .navigationTitle("Mintzo")
+                .navigationDestination(for: Transcription.self) { transcription in
+                    TranscriptionDetailView(transcription: transcription)
                 }
-            }
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        filterPicker
+                    }
+                }
+                .searchable(
+                    text: $searchText,
+                    placement: .toolbar,
+                    prompt: Text(MzL10n.searchPrompt)
+                )
         }
         .task { await observeStore() }
         .task(id: searchText) { runSearch() }
-    }
-
-    private var framedContent: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(MzColor.paper)
-    }
-
-    /// `ScrollView` + `LazyVStack` en usage réel ; pile non-lazy alignée en
-    /// haut en rendu figé (`ImageRenderer` ne rend ni `ScrollView`, ni
-    /// correctement un `LazyVStack` plus haut que la proposition).
-    @ViewBuilder
-    private func scrollContainer<Inner: View>(@ViewBuilder _ inner: @escaping () -> Inner) -> some View {
-        if staticSnapshot {
-            VStack(alignment: .leading, spacing: 28) {
-                inner()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 32)
-            .padding(.bottom, 24)
-            // Hauteur idéale conservée (pas de compression des textes) :
-            // même layout que sous ScrollView, l'excédent est rogné en bas.
-            .fixedSize(horizontal: false, vertical: true)
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    inner()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-                .padding(.bottom, 24)
-            }
-        }
     }
 
     // MARK: - Contenu
@@ -111,73 +70,94 @@ struct HistoryListView: View {
         if isSearching {
             searchContent
         } else if visibleTranscriptions.isEmpty && queueItems.isEmpty {
-            EmptyHistoryView()
+            emptyState
         } else {
-            listContent
+            historyList
         }
     }
 
-    private var listContent: some View {
-        scrollContainer {
+    /// La liste native : file d'attente épinglée en tête (si active),
+    /// puis sections par jour.
+    private var historyList: some View {
+        List {
             if !queueItems.isEmpty {
-                QueueSectionView(items: queueItems)
+                Section {
+                    ForEach(queueItems) { item in
+                        QueueRowView(item: item)
+                    }
+                } header: {
+                    sectionHeader(MzL10n.queueHeader(count: queueItems.count))
+                }
             }
             ForEach(sections) { section in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(MzL10n.sectionTitle(for: section.day))
-                        .font(MzFont.sectionHeader)
-                        .tracking(MzFont.sectionHeaderTracking)
-                        .foregroundStyle(MzColor.inkSecondary)
-                    cellGroup(section.items)
+                Section {
+                    rows(section.items)
+                } header: {
+                    sectionHeader(MzL10n.sectionTitle(for: section.day))
                 }
             }
         }
+        .listStyle(.inset)
     }
 
     @ViewBuilder
     private var searchContent: some View {
         if visibleSearchResults.isEmpty {
-            Text(MzL10n.searchNoResults)
-                .font(.system(size: 13))
-                .foregroundStyle(MzColor.inkSecondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ContentUnavailableView {
+                Label(MzL10n.searchNoResults, systemImage: "magnifyingglass")
+            }
         } else {
-            scrollContainer {
-                // Résultats classés bm25 : un seul groupe, pas de sections par jour.
-                cellGroup(visibleSearchResults, highlightTerms: searchTerms)
+            // Résultats classés bm25 : un seul groupe, pas de sections par jour.
+            List {
+                rows(visibleSearchResults, highlightTerms: searchTerms)
+            }
+            .listStyle(.inset)
+        }
+    }
+
+    /// État vide première ouverture — habit natif (`ContentUnavailableView`),
+    /// geste éditorial conservé : la phrase canonique en serif (§6.3).
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label(MzL10n.emptyHeadline, systemImage: "waveform")
+        } description: {
+            VStack(spacing: 8) {
+                Text(MzL10n.emptyTitle)
+                    .font(MzFont.historyExcerpt)
+                    .foregroundStyle(.primary)
+                Text(MzL10n.emptySubtitle)
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    /// Rangées d'historique : `NavigationLink` natif (sélection, focus,
+    /// accessibilité système) — ou action externe si fournie.
+    @ViewBuilder
+    private func rows(_ items: [Transcription], highlightTerms: [String] = []) -> some View {
+        ForEach(items) { transcription in
+            if let onOpenDetail {
+                Button {
+                    onOpenDetail(transcription)
+                } label: {
+                    HistoryCellView(transcription: transcription, highlightTerms: highlightTerms)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NavigationLink(value: transcription) {
+                    HistoryCellView(transcription: transcription, highlightTerms: highlightTerms)
+                }
             }
         }
     }
 
-    /// Groupe de cellules dans un conteneur `MzSurface` rayon 10, hairline,
-    /// séparateurs inset 14 entre cellules seulement (§6.3).
-    private func cellGroup(
-        _ items: [Transcription],
-        highlightTerms: [String] = []
-    ) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, transcription in
-                if index > 0 {
-                    MzHairlineDivider()
-                }
-                HistoryCellView(
-                    transcription: transcription,
-                    highlightTerms: highlightTerms
-                ) {
-                    if let onOpenDetail {
-                        onOpenDetail(transcription)
-                    } else {
-                        selection = transcription
-                    }
-                }
-            }
-        }
-        .background(MzColor.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(MzColor.hairline, lineWidth: 0.5)
-        }
+    /// En-tête de section : petites capitales espacées, discrètes sur fond
+    /// système — les « folios » du journal (§6.3), en habit natif.
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(MzFont.sectionHeader)
+            .tracking(MzFont.sectionHeaderTracking)
+            .foregroundStyle(.secondary)
     }
 
     private var filterPicker: some View {
@@ -255,26 +235,5 @@ struct HistoryListView: View {
             return
         }
         searchResults = (try? store.search(query: query)) ?? []
-    }
-}
-
-/// État vide première ouverture (§6.3) : moment éditorial, centré optique 45 %.
-/// Aucune illustration.
-private struct EmptyHistoryView: View {
-    var body: some View {
-        GeometryReader { geo in
-            VStack(spacing: 10) {
-                Text(MzL10n.emptyTitle)
-                    .font(MzFont.emptyStateTitle)
-                    .lineSpacing(8)
-                    .foregroundStyle(MzColor.ink)
-                Text(MzL10n.emptySubtitle)
-                    .font(.system(size: 13))
-                    .foregroundStyle(MzColor.inkSecondary)
-            }
-            .multilineTextAlignment(.center)
-            .frame(width: geo.size.width)
-            .position(x: geo.size.width / 2, y: geo.size.height * 0.45)
-        }
     }
 }
