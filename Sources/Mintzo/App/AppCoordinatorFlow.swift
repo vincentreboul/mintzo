@@ -470,7 +470,10 @@ final class DictationFlow {
             if let task = detectionTask {
                 await task.value // verdict de la détection live (rapide : tiny)
             }
-            if sessionDetection == nil, detectionAvailableForSession {
+            // Pas de verdict live (session courte, bascule vers auto AU stop,
+            // ou tiny téléchargé PENDANT la session) : disponibilité re-sondée
+            // puis tentative unique sur l'audio complet.
+            if sessionDetection == nil, await detector.isDetectionAvailable() {
                 let window = Array(samples.prefix(detectionWindowSampleCount))
                 applyDetection(try? await detector.detect(samples: window))
             }
