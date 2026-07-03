@@ -50,6 +50,19 @@ struct OrokorraSettingsView: View {
                     .foregroundStyle(MzColor.inkSecondary)
             }
 
+            // Présence : barre de menus / Dock / les deux — jamais « aucun ».
+            Section {
+                Picker(SettingsStrings.presenceLabel, selection: presenceMode) {
+                    Text(SettingsStrings.presenceMenuBar).tag(AppPresenceMode.menuBar)
+                    Text(SettingsStrings.presenceDock).tag(AppPresenceMode.dock)
+                    Text(SettingsStrings.presenceBoth).tag(AppPresenceMode.both)
+                }
+            } footer: {
+                Text(SettingsStrings.presenceNote)
+                    .font(.system(size: 11))
+                    .foregroundStyle(MzColor.inkSecondary)
+            }
+
             Section {
                 Toggle(SettingsStrings.loginItemToggle, isOn: $openAtLogin)
                 if loginNeedsApproval {
@@ -58,7 +71,7 @@ struct OrokorraSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 400)
+        .frame(height: 470)
         .onChange(of: fnEnabled) { _, newValue in
             AppSettings.fnKeyEnabled = newValue
             coordinator.hotkeySettingsChanged()
@@ -84,6 +97,18 @@ struct OrokorraSettingsView: View {
                 permissions = snapshot
             }
         }
+    }
+
+    // MARK: - Présence (menu bar / Dock / les deux)
+
+    /// Liaison directe sur le service : `setMode` persiste, applique la
+    /// politique Dock à chaud et ré-active l'app (la fenêtre Réglages reste
+    /// au premier plan pendant la bascule).
+    private var presenceMode: Binding<AppPresenceMode> {
+        Binding(
+            get: { coordinator.presence.mode },
+            set: { coordinator.presence.setMode($0) }
+        )
     }
 
     // MARK: - Ouverture de session

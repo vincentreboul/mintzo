@@ -67,6 +67,25 @@ enum SettingsStrings {
              "Approbation requise dans les Réglages Système",
              "Approval required in System Settings")
     }
+    static var presenceLabel: String {
+        pick("Non erakutsi Mintzo",
+             "Où afficher Mintzo",
+             "Where to show Mintzo")
+    }
+    static var presenceMenuBar: String {
+        pick("Menu-barran", "Dans la barre de menus", "In the menu bar")
+    }
+    static var presenceDock: String {
+        pick("Dock-ean", "Dans le Dock", "In the Dock")
+    }
+    static var presenceBoth: String {
+        pick("Bietan", "Les deux", "Both")
+    }
+    static var presenceNote: String {
+        pick("Dock moduan ere, diktaketa erabilgarri dago beti lasterbidearen bidez.",
+             "En mode Dock seul, la dictée reste accessible par le raccourci.",
+             "In Dock-only mode, dictation stays available through the shortcut.")
+    }
 
     // MARK: Ereduak
 
