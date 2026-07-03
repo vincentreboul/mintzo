@@ -1,6 +1,7 @@
 # Xcode
 build/
 DerivedData/
+*.xcodeproj
 *.xcuserstate
 xcuserdata/
 *.xccheckout
@@ -11,6 +12,9 @@ xcuserdata/
 !default.mode1v3
 *.mode2v3
 *.perspectivev3
+
+# Vendor (régénéré par scripts/fetch-whisper-xcframework.sh — ~192 Mo décompressé)
+Vendor/whisper.xcframework/
 
 # SPM
 .build/
