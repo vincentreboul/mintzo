@@ -199,6 +199,20 @@ final class AppCoordinatorFlowTests: XCTestCase {
         XCTAssertEqual(harness.history.records.first?.langue, .fr)
     }
 
+    func testLanguageSwitchedMidSessionUsesStopTimeLanguage() async throws {
+        // Badge cyclé pendant la dictée (§4.4) : la langue au STOP fait foi.
+        let harness = FlowHarness()
+        harness.transcriber.textToReturn = "bonjour"
+
+        harness.flow.handle(.pressBegan, language: .basque)
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, language: .french)
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.transcriber.lastLanguage, "fr")
+        XCTAssertEqual(harness.history.records.first?.langue, .fr)
+    }
+
     func testRMSChunksAreForwardedWhileListening() async throws {
         let harness = FlowHarness()
         var levels: [Float] = []

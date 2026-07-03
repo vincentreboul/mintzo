@@ -174,17 +174,24 @@ final class DictationFlow {
     // MARK: Entrées
 
     /// Point d'entrée des événements hotkey (push-to-talk et toggle confondus).
+    /// `language` = langue du badge HUD au moment de l'événement ; au stop elle
+    /// fait foi (l'utilisateur peut corriger la langue en cours de dictée, §4.4).
     func handle(_ event: HotkeyEvent, language: Language) {
         switch event {
         case .pressBegan:
             beginSession(language: language)
         case .pressEnded:
+            sessionLanguage = language
             endSession()
         case .toggled:
             switch phase {
-            case .idle: beginSession(language: language)
-            case .listening: endSession()
-            case .transcribing, .correcting: break // session déjà en traitement
+            case .idle:
+                beginSession(language: language)
+            case .listening:
+                sessionLanguage = language
+                endSession()
+            case .transcribing, .correcting:
+                break // session déjà en traitement
             }
         }
     }
