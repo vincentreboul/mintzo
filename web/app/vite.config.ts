@@ -15,5 +15,9 @@ export default defineConfig({
 			// 404.html sert de fallback SPA pour les chemins inconnus.
 			adapter: adapter({ fallback: '404.html' })
 		})
-	]
+	],
+
+	// Démo à distance : `vite preview` derrière un tunnel (host dynamique).
+	// Sans effet sur le build statique déployé.
+	preview: { allowedHosts: true }
 });
