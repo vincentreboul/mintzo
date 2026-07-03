@@ -65,6 +65,15 @@
 		color: var(--gorri);
 	}
 
+	/* cibles tactiles ≥ 44 px sans changer la densité au pointeur fin */
+	@media (pointer: coarse) {
+		.links a {
+			display: inline-flex;
+			align-items: center;
+			min-height: 2.75rem;
+		}
+	}
+
 	@media (max-width: 40rem) {
 		.bar {
 			flex-direction: column;

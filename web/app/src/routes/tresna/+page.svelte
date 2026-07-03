@@ -1385,6 +1385,23 @@
 		padding: 0 1rem 0.875rem;
 	}
 
+	/* cibles tactiles ≥ 44 px — la densité au pointeur fin reste intacte */
+	@media (pointer: coarse) {
+		.seg {
+			min-height: 2.75rem;
+			min-width: 3rem;
+		}
+
+		.mode {
+			min-height: 2.75rem;
+		}
+
+		.iconbtn {
+			width: 2.75rem;
+			height: 2.75rem;
+		}
+	}
+
 	/* ---------- responsive ---------- */
 	@media (max-width: 40rem) {
 		.controls {

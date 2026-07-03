@@ -333,6 +333,16 @@ img {
 	border: 0;
 }
 
+/* cibles tactiles ≥ 44 px — écrans tactiles uniquement, la densité
+   du pointeur fin reste intacte */
+@media (pointer: coarse) {
+	.btn-text {
+		min-height: 2.75rem;
+		display: inline-flex;
+		align-items: center;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	html {
 		scroll-behavior: auto;

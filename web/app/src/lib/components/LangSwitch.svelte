@@ -45,4 +45,15 @@
 	.lang + .lang {
 		position: relative;
 	}
+
+	/* cible tactile ≥ 44 px sans changer la densité au pointeur fin */
+	@media (pointer: coarse) {
+		.lang {
+			min-width: 2.75rem;
+			min-height: 2.75rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+		}
+	}
 </style>
