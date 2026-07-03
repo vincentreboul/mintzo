@@ -1,0 +1,63 @@
+name: Mintzo
+options:
+  bundleIdPrefix: eus.mintzo
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+    GENERATE_INFOPLIST_FILE: YES
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: "0.1.0"
+
+targets:
+  Mintzo:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/Mintzo
+    dependencies:
+      - target: MintzoCore
+    info:
+      path: Sources/Mintzo/Info.plist
+      properties:
+        CFBundleDisplayName: Mintzo
+        LSUIElement: true
+        NSMicrophoneUsageDescription: "Mintzo utilise le microphone pour transcrire votre voix en texte, localement sur votre Mac."
+    entitlements:
+      path: Sources/Mintzo/Mintzo.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.device.audio-input: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: eus.mintzo.Mintzo
+    scheme:
+      testTargets:
+        - MintzoCoreTests
+
+  MintzoCore:
+    type: framework
+    platform: macOS
+    sources:
+      - Sources/MintzoCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: eus.mintzo.MintzoCore
+    scheme:
+      testTargets:
+        - MintzoCoreTests
+
+  MintzoCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/MintzoCoreTests
+    dependencies:
+      - target: MintzoCore
