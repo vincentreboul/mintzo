@@ -50,6 +50,9 @@ struct OnboardingModelView: View {
             EmptyView()
         }
         .pickerStyle(.segmented)
+        // §2.1 « un seul accent » : sans tint, le segment sélectionné rend
+        // BLEU système (seul contrôle bleu de l'app — vu en capture QA R3).
+        .tint(MzColor.gorri)
         .labelsHidden()
         // Largeur naturelle : un frame plus large centrerait le contrôle
         // dans son cadre et le décollerait de la marge de gauche.
