@@ -501,6 +501,29 @@ final class AppCoordinatorFlowTests: XCTestCase {
         XCTAssertEqual(harness.outcomes, [.inserted])
     }
 
+    /// Mode appui simple : Échap / croix annulent une session ouverte au
+    /// toggle (inchangé), et l'appui SUIVANT rouvre une session propre.
+    func testToggleSessionCancelledThenRestartsCleanly() async throws {
+        let harness = FlowHarness()
+
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.cancel()
+        try await harness.waitUntil("annulation émise") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.outcomes, [.cancelled])
+        XCTAssertTrue(harness.inserter.insertedTexts.isEmpty)
+        XCTAssertEqual(harness.flow.phase, .idle)
+
+        // Nouveau cycle toggle complet après l'annulation.
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute redémarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
+        try await harness.waitUntil("outcome final") { harness.outcomes.count == 2 }
+
+        XCTAssertEqual(harness.outcomes, [.cancelled, .inserted])
+    }
+
     func testEventsDuringProcessingAreIgnored() async throws {
         let harness = FlowHarness()
         harness.transcriber.textToReturn = "kaixo"
