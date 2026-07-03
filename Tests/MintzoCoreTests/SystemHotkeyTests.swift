@@ -272,4 +272,94 @@ final class SystemHotkeyTests: XCTestCase {
         XCTAssertTrue(HotkeyService.dictationHasDefaultShortcut,
                       "le raccourci par défaut (option+espace) doit être déclaré")
     }
+
+    // MARK: - LanguageCycleHotkey (bascule de langue §4.4)
+
+    /// Compte les déclenchements du cycle ; attente par polling court,
+    /// même pattern que `Collector` (jamais de suite suspendue).
+    @MainActor
+    private final class CycleCounter {
+        private(set) var count = 0
+        func increment() { count += 1 }
+
+        func waitForCount(_ target: Int, timeout: TimeInterval = 2) async -> Bool {
+            let deadline = Date().addingTimeInterval(timeout)
+            while count < target, Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            return count >= target
+        }
+    }
+
+    func testLanguageCycleShortcutNameAndDefault() {
+        // Via les accesseurs MintzoCore : le module de test ne linke pas
+        // KeyboardShortcuts directement.
+        XCTAssertEqual(LanguageCycleHotkey.shortcutID, "languageCycle")
+        XCTAssertTrue(LanguageCycleHotkey.hasDefaultShortcut,
+                      "le raccourci par défaut (⌃⌥L) doit être déclaré")
+        XCTAssertEqual(LanguageCycleHotkey.defaultShortcutDescription, "⌃⌥L")
+    }
+
+    func testLanguageCycleFiresOncePerKeyDown() async {
+        let source = MockShortcutSource()
+        let hotkey = LanguageCycleHotkey(source: source)
+        let counter = CycleCounter()
+        hotkey.start { counter.increment() }
+        defer { hotkey.stop() }
+
+        source.continuation?.yield(.down)
+        let one = await counter.waitForCount(1)
+        XCTAssertTrue(one, "un appui (.down) doit déclencher exactement un cycle")
+
+        // Le relâchement du même appui ne re-déclenche pas.
+        source.continuation?.yield(.up)
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(counter.count, 1, "le relâchement (.up) ne doit pas déclencher")
+    }
+
+    func testLanguageCycleKeyUpAloneDoesNothing() async {
+        let source = MockShortcutSource()
+        let hotkey = LanguageCycleHotkey(source: source)
+        let counter = CycleCounter()
+        hotkey.start { counter.increment() }
+        defer { hotkey.stop() }
+
+        source.continuation?.yield(.up)
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(counter.count, 0, "un .up orphelin ne doit jamais déclencher")
+    }
+
+    func testLanguageCycleCountsEachPress() async {
+        let source = MockShortcutSource()
+        let hotkey = LanguageCycleHotkey(source: source)
+        let counter = CycleCounter()
+        hotkey.start { counter.increment() }
+        defer { hotkey.stop() }
+
+        source.continuation?.yield(.down)
+        source.continuation?.yield(.up)
+        source.continuation?.yield(.down)
+        source.continuation?.yield(.up)
+
+        let two = await counter.waitForCount(2)
+        XCTAssertTrue(two, "deux appuis complets = deux cycles, reçu \(counter.count)")
+        try? await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(counter.count, 2, "pas de déclenchement parasite au-delà des 2 appuis")
+    }
+
+    func testLanguageCycleStopSilencesPump() async {
+        let source = MockShortcutSource()
+        let hotkey = LanguageCycleHotkey(source: source)
+        let counter = CycleCounter()
+        hotkey.start { counter.increment() }
+
+        source.continuation?.yield(.down)
+        let one = await counter.waitForCount(1)
+        XCTAssertTrue(one)
+
+        hotkey.stop()
+        source.continuation?.yield(.down)
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(counter.count, 1, "après stop(), plus aucun cycle ne doit partir")
+    }
 }
