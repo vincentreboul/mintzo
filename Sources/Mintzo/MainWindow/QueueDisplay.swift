@@ -2,7 +2,8 @@ import SwiftUI
 import MintzoCore
 
 // File d'attente de transcription de fichiers — design-language.md §6.3.
-// Placeholder d'affichage : le protocole est câblé au vrai moteur en vague 3.
+// Alimentée par FileTranscriptionQueue (App/) via le protocole QueueDisplaying :
+// zain → progression par étapes → done (retiré ~0,6 s) ou erreur (systemRed, 10 s).
 
 /// Un fichier dans la file de transcription.
 struct QueueItem: Identifiable, Equatable, Sendable {
@@ -13,6 +14,9 @@ struct QueueItem: Identifiable, Equatable, Sendable {
     /// Durée audio détectée, en secondes (nil si pas encore sondée).
     var duree: TimeInterval?
     var langue: Transcription.Langue?
+    /// Message d'échec court — l'item passe en rendu erreur (systemRed §2.3)
+    /// et reste 10 s dans la file avant de disparaître.
+    var erreur: String?
 }
 
 /// Source d'affichage de la file d'attente (câblage vague 3).
@@ -58,6 +62,12 @@ private struct QueueRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
+                if item.erreur != nil {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(nsColor: .systemRed))
+                        .accessibilityHidden(true)
+                }
                 Text(item.nomFichier)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(MzColor.ink)
@@ -66,9 +76,13 @@ private struct QueueRowView: View {
                 Spacer(minLength: 12)
                 Text(statusLabel)
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(MzColor.inkSecondary)
+                    .foregroundStyle(item.erreur == nil
+                        ? MzColor.inkSecondary
+                        : Color(nsColor: .systemRed))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            if let progress = item.progress {
+            if item.erreur == nil, let progress = item.progress {
                 MzProgressBar(fraction: progress)
             }
         }
@@ -77,6 +91,7 @@ private struct QueueRowView: View {
     }
 
     private var statusLabel: String {
+        if let erreur = item.erreur { return erreur }
         guard item.progress != nil else { return MzL10n.queueWaiting }
         var parts: [String] = []
         if let duree = item.duree { parts.append(MzFormat.duree(duree)) }

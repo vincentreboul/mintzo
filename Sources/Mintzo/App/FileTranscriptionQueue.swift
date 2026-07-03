@@ -16,7 +16,12 @@ final class FileTranscriptionQueue: QueueDisplaying {
     private(set) var items: [QueueItem] = []
 
     /// Au moins un fichier en attente ou en cours (icône menu bar → processing).
-    var isWorking: Bool { !items.isEmpty }
+    /// Les items en erreur (affichés 10 s) ne comptent pas comme du travail.
+    var isWorking: Bool { items.contains { $0.erreur == nil } }
+
+    /// Tenue d'un item en erreur dans la file avant sa disparition (§6.3) :
+    /// le temps de voir QUEL fichier a échoué et pourquoi.
+    static let errorDisplayDuration: Duration = .seconds(10)
 
     /// Budget de correction par fichier — plus large qu'en dictée (textes longs),
     /// borné quand même : au-delà, texte brut.
@@ -80,20 +85,26 @@ final class FileTranscriptionQueue: QueueDisplaying {
             update(itemID) { $0.progress = fraction }
         case .done(let result):
             update(itemID) { $0.progress = 1.0 }
-            await finalize(result, url: url, language: language)
-            removeSoon(itemID) // laisse la barre pleine se voir (~0,6 s)
+            if await finalize(result, itemID: itemID, url: url, language: language) {
+                removeSoon(itemID) // laisse la barre pleine se voir (~0,6 s)
+            }
         case .failed(let message):
-            remove(itemID)
-            onFailure(url.lastPathComponent, message)
+            // Échec visible PAR ITEM (nom + message court systemRed, 10 s) —
+            // le détail technique part au log via onFailure, pas dans la file.
+            NSLog("Mintzo: échec moteur sur « %@ » — %@", url.lastPathComponent, message)
+            fail(itemID, url: url, message: MzL10n.queueFailed)
         }
     }
 
     /// Correction (optionnelle, bornée) → post-processing → historique.
-    private func finalize(_ result: TranscriptionResult, url: URL, language: Language) async {
+    /// `false` = échec (l'item est passé en état erreur, ne pas le retirer tout de suite).
+    private func finalize(
+        _ result: TranscriptionResult, itemID: UUID, url: URL, language: Language
+    ) async -> Bool {
         let raw = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else {
-            onFailure(url.lastPathComponent, "aucun texte reconnu")
-            return
+            fail(itemID, url: url, message: MzL10n.queueNoText)
+            return false
         }
 
         var finalText = raw
@@ -117,11 +128,24 @@ final class FileTranscriptionQueue: QueueDisplaying {
         } catch {
             // Le texte ne doit pas disparaître en silence : signalé comme échec.
             NSLog("Mintzo: écriture historique (fichier) échouée — %@", error.localizedDescription)
-            onFailure(url.lastPathComponent, "écriture historique échouée")
+            fail(itemID, url: url, message: MzL10n.queueHistoryWriteFailed)
+            return false
         }
+        return true
     }
 
     // MARK: - Items
+
+    /// Passe l'item en état erreur (rendu systemRed §6.3), badge le menu bar
+    /// via `onFailure`, puis retire l'item après 10 s.
+    private func fail(_ id: UUID, url: URL, message: String) {
+        update(id) {
+            $0.progress = nil
+            $0.erreur = message
+        }
+        onFailure(url.lastPathComponent, message)
+        scheduleRemoval(id, after: Self.errorDisplayDuration)
+    }
 
     private func update(_ id: UUID, _ mutate: (inout QueueItem) -> Void) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
@@ -133,8 +157,12 @@ final class FileTranscriptionQueue: QueueDisplaying {
     }
 
     private func removeSoon(_ id: UUID) {
+        scheduleRemoval(id, after: .milliseconds(600))
+    }
+
+    private func scheduleRemoval(_ id: UUID, after delay: Duration) {
         Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(600))
+            try? await Task.sleep(for: delay)
             self?.remove(id)
         }
     }
