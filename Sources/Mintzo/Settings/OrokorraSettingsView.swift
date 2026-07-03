@@ -9,6 +9,7 @@ struct OrokorraSettingsView: View {
     @Bindable var coordinator: AppCoordinator
 
     @State private var fnEnabled = AppSettings.fnKeyEnabled
+    @State private var shortcutBehavior = AppSettings.shortcutBehavior
     @State private var autoInsert = AppSettings.autoInsert
     @State private var permissions: PermissionsSnapshot?
 
@@ -30,6 +31,22 @@ struct OrokorraSettingsView: View {
                 .pickerStyle(.segmented)
 
                 KeyboardShortcuts.Recorder(SettingsStrings.shortcutLabel, name: .dictation)
+
+                // Appui simple (défaut, façon SuperWhisper) ou maintien —
+                // ne concerne que le raccourci : la touche Fn reste un maintien.
+                Picker(SettingsStrings.shortcutBehaviorLabel, selection: $shortcutBehavior) {
+                    Text(SettingsStrings.shortcutBehaviorPressOnce)
+                        .tag(AppSettings.ShortcutBehavior.pressOnce)
+                    Text(SettingsStrings.shortcutBehaviorHold)
+                        .tag(AppSettings.ShortcutBehavior.hold)
+                }
+                .pickerStyle(.segmented)
+            } footer: {
+                Text(shortcutBehavior == .pressOnce
+                     ? SettingsStrings.shortcutBehaviorPressOnceNote
+                     : SettingsStrings.shortcutBehaviorHoldNote)
+                    .font(.system(size: 11))
+                    .foregroundStyle(MzColor.inkSecondary)
             }
 
             Section {
@@ -83,9 +100,13 @@ struct OrokorraSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 530)
+        .frame(height: 590)
         .onChange(of: fnEnabled) { _, newValue in
             AppSettings.fnKeyEnabled = newValue
+            coordinator.hotkeySettingsChanged()
+        }
+        .onChange(of: shortcutBehavior) { _, newValue in
+            AppSettings.shortcutBehavior = newValue
             coordinator.hotkeySettingsChanged()
         }
         .onChange(of: autoInsert) { _, newValue in
