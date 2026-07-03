@@ -176,6 +176,10 @@ final class DictationFlow {
     var autoInsertEnabled: @MainActor () -> Bool = { true }
     /// Écriture clipboard du mode « clipboard seul » (NSPasteboard en prod, spy en test).
     var writeClipboard: @MainActor (String) -> Void = { _ in }
+    /// Conserve l'audio de la session (WAV 16 kHz mono, réécoute/relance) et
+    /// rend son chemin — nil si la persistance est indisponible ou a échoué.
+    /// NON BLOQUANT : un échec d'écriture audio ≠ un échec de la session.
+    var persistAudio: @Sendable ([Float]) -> String? = { _ in nil }
     /// Budget maximal de la passe de correction — au-delà : texte brut (brief : 10 s).
     var correctionTimeout: Duration = .seconds(10)
     /// En deçà (~0,25 s à 16 kHz), la session est un raté de hotkey : annulation propre.
@@ -481,6 +485,12 @@ final class DictationFlow {
             outcome = .clipboardOnly
         }
 
+        // Audio conservé pour la réécoute/relance — APRÈS le dernier point
+        // d'annulation (jamais de WAV orphelin d'une session annulée), AVANT
+        // l'historique (l'entrée naît avec son chemin). Échec → nil, la
+        // session reste un succès.
+        let audioPath = persistAudio(samples)
+
         // Historique APRÈS l'insertion (ordre du brief). Un échec d'écriture ne fait
         // pas échouer la session : le texte est déjà livré (curseur ou clipboard).
         let record = Transcription(
@@ -488,7 +498,8 @@ final class DictationFlow {
             texteCorrige: finalText != raw ? finalText : nil,
             dureeAudio: result.audioDuration,
             langue: language == .basque ? .eu : .fr,
-            source: .dictee
+            source: .dictee,
+            audioPath: audioPath
         )
         do {
             try history.insert(record)

@@ -265,6 +265,72 @@ final class AppCoordinatorFlowTests: XCTestCase {
         XCTAssertEqual(records.first?.dureeAudio ?? 0, 1.0, accuracy: 0.001)
     }
 
+    // MARK: Audio conservé (réécoute / relance)
+
+    func testNominalSessionPersistsAudioAndRecordsPath() async throws {
+        let harness = FlowHarness()
+        // Spy Sendable : NSLock, même pattern que les mocks de services.
+        final class PersistSpy: @unchecked Sendable {
+            private let lock = NSLock()
+            private var _sampleCounts: [Int] = []
+            var sampleCounts: [Int] { lock.lock(); defer { lock.unlock() }; return _sampleCounts }
+            func record(_ count: Int) { lock.lock(); defer { lock.unlock() }; _sampleCounts.append(count) }
+        }
+        let spy = PersistSpy()
+        harness.flow.persistAudio = { samples in
+            spy.record(samples.count)
+            return "/tmp/mintzo-flow-test/session.wav"
+        }
+
+        try await harness.runFullSession(language: .basque)
+
+        XCTAssertEqual(harness.outcomes, [.inserted])
+        XCTAssertEqual(spy.sampleCounts, [16_000], "les échantillons de la session partent au WAV")
+        XCTAssertEqual(harness.history.records.first?.audioPath, "/tmp/mintzo-flow-test/session.wav")
+    }
+
+    func testAudioPersistFailureIsNonBlocking() async throws {
+        // Échec d'écriture audio ≠ échec de la session : texte inséré,
+        // historique écrit, audioPath nil.
+        let harness = FlowHarness()
+        harness.flow.persistAudio = { _ in nil }
+
+        try await harness.runFullSession(language: .basque)
+
+        XCTAssertEqual(harness.outcomes, [.inserted])
+        XCTAssertEqual(harness.inserter.insertedTexts, ["Kaixo mundua"])
+        XCTAssertEqual(harness.history.records.count, 1)
+        XCTAssertNil(harness.history.records.first?.audioPath)
+    }
+
+    func testCancelledSessionNeverPersistsAudio() async throws {
+        // Session annulée pendant la transcription : rien d'historisé, rien
+        // d'écrit sur le disque — pas de WAV orphelin.
+        let harness = FlowHarness()
+        harness.transcriber.delay = .seconds(2)
+        final class PersistSpy: @unchecked Sendable {
+            private let lock = NSLock()
+            private var _count = 0
+            var count: Int { lock.lock(); defer { lock.unlock() }; return _count }
+            func bump() { lock.lock(); defer { lock.unlock() }; _count += 1 }
+        }
+        let spy = PersistSpy()
+        harness.flow.persistAudio = { _ in spy.bump(); return "/tmp/never.wav" }
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
+        try await harness.waitUntil("transcription en cours") { harness.flow.phase == .transcribing }
+        harness.flow.cancel()
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.outcomes, [.cancelled])
+        // Laisse mourir la tâche orpheline avant de vérifier l'absence d'effets.
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(spy.count, 0, "aucun WAV ne doit être écrit pour une session annulée")
+        XCTAssertTrue(harness.history.records.isEmpty)
+    }
+
     func testFrenchSessionPassesLanguageThrough() async throws {
         let harness = FlowHarness()
         harness.transcriber.textToReturn = "bonjour"

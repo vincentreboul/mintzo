@@ -37,6 +37,10 @@ final class FileTranscriptionQueue: QueueDisplaying {
     @ObservationIgnored var vocabularyReplacements: @MainActor () -> [VocabularyReplacement] = { [] }
     /// Échec d'un fichier : (nom, message) — le coordinator badge le menu bar.
     @ObservationIgnored var onFailure: @MainActor (String, String) -> Void = { _, _ in }
+    /// Conserve l'audio du fichier (WAV 16 kHz mono, réécoute/relance) et rend
+    /// son chemin — même contrat que `DictationFlow.persistAudio` : nil en cas
+    /// d'échec, jamais bloquant.
+    @ObservationIgnored var persistAudio: @Sendable ([Float]) -> String? = { _ in nil }
 
     init(transcriber: TranscriptionService, history: any DictationHistoryWriting) {
         self.transcriber = transcriber
@@ -132,13 +136,23 @@ final class FileTranscriptionQueue: QueueDisplaying {
         finalText = VocabularyPostPass.apply(finalText, replacements: vocabularyReplacements())
         finalText = DictationFlow.postProcess(finalText)
 
+        // Audio conservé : re-décodage du fichier source en 16 kHz mono, hors
+        // main actor (les fichiers peuvent être longs). Best effort — un échec
+        // de décodage ou d'écriture donne audioPath nil, jamais un échec du job.
+        let persist = persistAudio
+        let audioPath = await Task.detached(priority: .utility) { () -> String? in
+            guard let samples = try? AudioFileDecoder.decode(url: url) else { return nil }
+            return persist(samples)
+        }.value
+
         let record = Transcription(
             texteBrut: raw,
             texteCorrige: finalText != raw ? finalText : nil,
             dureeAudio: result.audioDuration,
             langue: effective == .basque ? .eu : .fr,
             source: .fichier,
-            nomFichier: url.lastPathComponent
+            nomFichier: url.lastPathComponent,
+            audioPath: audioPath
         )
         do {
             try history.insert(record)
