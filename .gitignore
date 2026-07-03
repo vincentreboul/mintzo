@@ -1,0 +1,32 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# SPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Models (téléchargés au runtime, jamais commités)
+Models/
+*.gguf
+*.ggml
+*.mlmodelc
+*.safetensors
+
+# macOS
+.DS_Store
+
+# Deep-work
+.deep-work-active
+MERGE_GATE.md
