@@ -25,8 +25,6 @@ enum HUDLayout {
 
 struct HUDContentView: View {
     let viewModel: HUDViewModel
-    /// Le contrôleur du panel s'en sert pour ordonner/masquer la fenêtre (jamais de makeKey).
-    var onVisibilityChange: ((Bool) -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -286,7 +284,6 @@ struct HUDContentView: View {
             contentOpacity = 1
             capsuleScale = reduceMotion ? 1 : 0.85
             capsuleOpacity = 0
-            onVisibilityChange?(true)
             withAnimation(reduceMotion ? MzMotion.micro : MzMotion.enter) {
                 capsuleScale = 1
                 capsuleOpacity = 1
@@ -301,7 +298,6 @@ struct HUDContentView: View {
             morphTask = Task {
                 try? await Task.sleep(for: .milliseconds(240))
                 guard !Task.isCancelled else { return }
-                onVisibilityChange?(false)
                 displayedState = .idle
                 capsuleScale = 0.85
             }
