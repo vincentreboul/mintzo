@@ -144,8 +144,45 @@ enum MainWindowSnapshots {
             )
         }
 
+        // État 3 — détail avec audio conservé : surface de réécoute (lecteur
+        // play/pause + progression Gorri + durées) et menu « Berriz sortu ».
+        if let detail = makeDetailSeed() {
+            await capture(
+                state: "detail-audio",
+                rootView: NavigationStack { TranscriptionDetailView(transcription: detail) },
+                in: outputDir,
+                appearances: appearances
+            )
+        }
+
         print("WINDOW SNAPSHOTS OK → \(outputDir.path)")
         exit(0)
+    }
+
+    /// Entrée de détail avec un VRAI WAV conservé (3 s de signal modulé,
+    /// écrit dans un répertoire temporaire) : la surface de réécoute rend
+    /// exactement comme en production.
+    private static func makeDetailSeed() -> Transcription? {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mintzo-snapshot-audio-\(ProcessInfo.processInfo.processIdentifier)",
+                                    isDirectory: true)
+        let audioStore = TranscriptionAudioStore(directory: directory)
+        let samples: [Float] = (0..<48_000).map { index in
+            let t = Float(index) / 16_000
+            let envelope = 0.5 + 0.5 * sin(2 * .pi * 0.35 * t)
+            return 0.4 * envelope * sin(2 * .pi * 220 * t)
+        }
+        guard let url = try? audioStore.write(samples: samples) else { return nil }
+        return Transcription(
+            id: 1,
+            texteBrut: "kaixo maite bihar goizean elkartuko gara bulegoan proiektua ixteko ekarri azken aurrekontua mesedez",
+            texteCorrige: "Kaixo Maite, bihar goizean elkartuko gara bulegoan proiektua ixteko. Ekarri azken aurrekontua, mesedez.",
+            date: .now,
+            dureeAudio: 3,
+            langue: .eu,
+            source: .dictee,
+            audioPath: url.path
+        )
     }
 
     // MARK: - Fenêtre réelle + capture du frame natif

@@ -211,6 +211,13 @@ final class AppCoordinator {
         if env["MINTZO_HUD_PREVIEW"] == "1" || env["MINTZO_HUD_SNAPSHOT_DIR"] != nil {
             return
         }
+        // Harnais de snapshots de la fenêtre principale : rendu pur, JAMAIS
+        // de services réels — les hotkeys globaux d'une instance QA entreraient
+        // en conflit avec l'app de production qui tourne peut-être à côté.
+        if UserDefaults.standard.string(forKey: MainWindowSnapshots.directoryDefaultsKey) != nil
+            || env[MainWindowSnapshots.environmentKey] != nil {
+            return
+        }
         #endif
 
         hud.setLanguage(AppSettings.language)
