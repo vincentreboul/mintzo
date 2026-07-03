@@ -75,7 +75,7 @@ enum MzL10n {
     static func queueHeader(count: Int) -> String {
         switch current {
         case .eu: count == 1 ? "ilara — fitxategi 1" : "ilara — \(count) fitxategi"
-        case .fr: count == 1 ? "file d'attente — 1 fichier" : "file d'attente — \(count) fichiers"
+        case .fr: count == 1 ? "file d\u{2019}attente — 1 fichier" : "file d\u{2019}attente — \(count) fichiers"
         case .en: count == 1 ? "queue — 1 file" : "queue — \(count) files"
         }
     }
@@ -86,7 +86,7 @@ enum MzL10n {
     /// En bas de casse — la fonte small caps fait le travail (§3.4).
     static func sectionTitle(for day: Date, calendar: Calendar = .current) -> String {
         if calendar.isDateInToday(day) {
-            return t("gaur", "aujourd'hui", "today")
+            return t("gaur", "aujourd\u{2019}hui", "today")
         }
         if calendar.isDateInYesterday(day) {
             return t("atzo", "hier", "yesterday")

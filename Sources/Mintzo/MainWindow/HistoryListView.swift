@@ -13,6 +13,7 @@ struct HistoryListView: View {
     let store: HistoryStore
     private let queue: (any QueueDisplaying)?
     private let onOpenDetail: ((Transcription) -> Void)?
+    private let staticSnapshot: Bool
 
     @State private var transcriptions: [Transcription]
     @State private var searchText = ""
@@ -25,40 +26,82 @@ struct HistoryListView: View {
     ///   - queue: source d'affichage de la file d'attente (câblage vague 3).
     ///   - initialTranscriptions: contenu affiché avant la première émission
     ///     de l'observation (previews, rendus QA).
+    ///   - staticSnapshot: `true` pour un rendu figé via `ImageRenderer`
+    ///     (QA visuelle, previews) — sans `NavigationStack`/toolbar/searchable
+    ///     ni `ScrollView`, qu'`ImageRenderer` ne rend pas.
     init(
         store: HistoryStore,
         queue: (any QueueDisplaying)? = nil,
         initialTranscriptions: [Transcription] = [],
-        onOpenDetail: ((Transcription) -> Void)? = nil
+        onOpenDetail: ((Transcription) -> Void)? = nil,
+        staticSnapshot: Bool = false
     ) {
         self.store = store
         self.queue = queue
         self.onOpenDetail = onOpenDetail
+        self.staticSnapshot = staticSnapshot
         _transcriptions = State(initialValue: initialTranscriptions)
     }
 
     var body: some View {
-        NavigationStack {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(MzColor.paper)
-                .navigationTitle("Mintzo")
-                .navigationDestination(item: $selection) { transcription in
-                    TranscriptionDetailView(transcription: transcription)
+        Group {
+            if staticSnapshot {
+                framedContent
+            } else {
+                NavigationStack {
+                    framedContent
+                        .navigationTitle("Mintzo")
+                        .navigationDestination(item: $selection) { transcription in
+                            TranscriptionDetailView(transcription: transcription)
+                        }
+                        .toolbar {
+                            ToolbarItem(placement: .principal) {
+                                filterPicker
+                            }
+                        }
+                        .searchable(
+                            text: $searchText,
+                            placement: .toolbar,
+                            prompt: Text(MzL10n.searchPrompt)
+                        )
                 }
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        filterPicker
-                    }
-                }
-                .searchable(
-                    text: $searchText,
-                    placement: .toolbar,
-                    prompt: Text(MzL10n.searchPrompt)
-                )
+            }
         }
         .task { await observeStore() }
         .task(id: searchText) { runSearch() }
+    }
+
+    private var framedContent: some View {
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(MzColor.paper)
+    }
+
+    /// `ScrollView` + `LazyVStack` en usage réel ; pile non-lazy alignée en
+    /// haut en rendu figé (`ImageRenderer` ne rend ni `ScrollView`, ni
+    /// correctement un `LazyVStack` plus haut que la proposition).
+    @ViewBuilder
+    private func scrollContainer<Inner: View>(@ViewBuilder _ inner: @escaping () -> Inner) -> some View {
+        if staticSnapshot {
+            VStack(alignment: .leading, spacing: 28) {
+                inner()
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 32)
+            .padding(.bottom, 24)
+            // Hauteur idéale conservée (pas de compression des textes) :
+            // même layout que sous ScrollView, l'excédent est rogné en bas.
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    inner()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
+                .padding(.bottom, 24)
+            }
+        }
     }
 
     // MARK: - Contenu
@@ -75,24 +118,19 @@ struct HistoryListView: View {
     }
 
     private var listContent: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 28) {
-                if !queueItems.isEmpty {
-                    QueueSectionView(items: queueItems)
-                }
-                ForEach(sections) { section in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(MzL10n.sectionTitle(for: section.day))
-                            .font(MzFont.sectionHeader)
-                            .tracking(MzFont.sectionHeaderTracking)
-                            .foregroundStyle(MzColor.inkSecondary)
-                        cellGroup(section.items)
-                    }
+        scrollContainer {
+            if !queueItems.isEmpty {
+                QueueSectionView(items: queueItems)
+            }
+            ForEach(sections) { section in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(MzL10n.sectionTitle(for: section.day))
+                        .font(MzFont.sectionHeader)
+                        .tracking(MzFont.sectionHeaderTracking)
+                        .foregroundStyle(MzColor.inkSecondary)
+                    cellGroup(section.items)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 32)
-            .padding(.bottom, 24)
         }
     }
 
@@ -104,14 +142,9 @@ struct HistoryListView: View {
                 .foregroundStyle(MzColor.inkSecondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28) {
-                    // Résultats classés bm25 : un seul groupe, pas de sections par jour.
-                    cellGroup(visibleSearchResults, highlightTerms: searchTerms)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-                .padding(.bottom, 24)
+            scrollContainer {
+                // Résultats classés bm25 : un seul groupe, pas de sections par jour.
+                cellGroup(visibleSearchResults, highlightTerms: searchTerms)
             }
         }
     }
