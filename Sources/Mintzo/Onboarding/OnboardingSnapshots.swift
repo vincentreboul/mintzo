@@ -93,15 +93,16 @@ enum OnboardingSnapshots {
         }
 
         // Fenêtre key + app active : sinon macOS rend contrôles ET traffic
-        // lights à l'état inactif (gris) — capture non représentative. App
+        // lights à l'état inactif (gris) — capture non représentative (bug R2 :
+        // ProgressView/segmented désaturés, feux gris sur les 10 PNG). App
         // accessoire (LSUIElement) lancée du terminal : l'activation
-        // coopérative est refusée → on passe temporairement en politique
-        // `.regular` et on force (harnais QA uniquement).
+        // coopérative macOS 15+ refuse le vol de focus → on passe en politique
+        // `.regular` (harnais QA uniquement) puis on ATTEND l'état représentatif
+        // en re-tentant, plutôt qu'un sleep fixe : l'activation externe (le
+        // lanceur QA pousse l'app frontmost via System Events, en boucle) peut
+        // atterrir n'importe quand dans cette fenêtre.
         NSApp.setActivationPolicy(.regular)
-        NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
-        try? await Task.sleep(for: .milliseconds(600))
+        await ensureActive(window: window, attempts: 40) // 8 s max au démarrage
 
         for (appearanceName, appearance) in [
             ("light", NSAppearance(named: .aqua)),
@@ -115,6 +116,10 @@ enum OnboardingSnapshots {
             for state in states {
                 state.configure(controller)
                 try? await Task.sleep(for: .milliseconds(450))
+                // Re-assurer l'état actif AVANT CHAQUE capture : la machine
+                // hôte est utilisée en live, le focus peut être volé à tout
+                // moment du run (vu en R3 : light actif, dark redevenu gris).
+                await ensureActive(window: window, attempts: 8)
                 capture(window: window, to: dir.appendingPathComponent(
                     "mintzo-onboarding-\(state.name)-\(appearanceName).png"
                 ))
@@ -123,6 +128,31 @@ enum OnboardingSnapshots {
 
         print("ONBOARDING SNAPSHOTS OK → \(dir.path)")
         exit(0)
+    }
+
+    /// Amène l'app active + fenêtre key (rendu représentatif : traffic lights
+    /// colorés, contrôles teintés) en re-tentant jusqu'à `attempts` × 200 ms.
+    /// Déjà actif → retour immédiat. Échec → log actionnable, on capture
+    /// quand même (limite documentée : l'état inactif se voit au premier
+    /// coup d'œil sur les feux, la revue sait qu'il faut relancer).
+    private static func ensureActive(window: NSWindow, attempts: Int) async {
+        for _ in 0..<attempts {
+            if NSApp.isActive && window.isKeyWindow {
+                return
+            }
+            NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        if !(NSApp.isActive && window.isKeyWindow) {
+            NSLog("""
+            MINTZO-ONBOARDING-SNAPSHOT: app inactive — traffic lights et \
+            contrôles captureront gris. Pousser l'app frontmost en boucle \
+            pendant le run : osascript -e 'tell application "System Events" \
+            to set frontmost of (first process whose name is "Mintzo") to true'
+            """)
+        }
     }
 
     /// PNG de la fenêtre entière, chrome compris (voir doc du type).
