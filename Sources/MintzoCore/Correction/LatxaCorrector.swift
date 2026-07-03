@@ -4,16 +4,21 @@ import Foundation
 /// le français — seul le prompt système change (voir `CorrectionPrompt`).
 public struct LatxaCorrector: Corrector {
     private let engine: LlamaEngine
+    private let protectedWords: [String]
 
-    /// - Parameter engine: moteur chargé avec un GGUF INSTRUCT du catalogue
-    ///   (`LatxaCatalog.default`), typiquement Latxa-Qwen3-VL-4B-Instruct Q4_K_M.
-    public init(engine: LlamaEngine) {
+    /// - Parameters:
+    ///   - engine: moteur chargé avec un GGUF INSTRUCT du catalogue
+    ///     (`LatxaCatalog.default`), typiquement Latxa-Qwen3-VL-4B-Instruct Q4_K_M.
+    ///   - protectedWords: graphies du dictionnaire personnalisé, injectées
+    ///     dans le prompt système (section « respecte ces graphies »).
+    public init(engine: LlamaEngine, protectedWords: [String] = []) {
         self.engine = engine
+        self.protectedWords = protectedWords
     }
 
     public func correct(_ text: String, language: Language) async throws -> String {
         try await engine.generate(
-            system: CorrectionPrompt.system(for: language),
+            system: CorrectionPrompt.system(for: language, protectedWords: protectedWords),
             user: text,
             maxTokens: CorrectionPrompt.maxTokens(forInput: text)
         )

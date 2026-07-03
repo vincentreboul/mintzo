@@ -9,7 +9,30 @@ public enum CorrectionPrompt {
     /// Prompt système strict : corriger UNIQUEMENT ponctuation/majuscules/orthographe/
     /// erreurs ASR évidentes, ne JAMAIS reformuler, ne JAMAIS répondre au contenu,
     /// renvoyer le texte seul.
-    public static func system(for language: Language) -> String {
+    ///
+    /// - Parameter protectedWords: graphies du dictionnaire personnalisé à
+    ///   respecter à l'identique (« Bitwip », « Maite »…). Liste vide = prompt
+    ///   historique inchangé. Les garde-fous applicatifs (`CorrectionGuardrails`)
+    ///   restent les mêmes — la section n'autorise AUCUNE réécriture nouvelle.
+    public static func system(for language: Language, protectedWords: [String] = []) -> String {
+        let base = baseSystem(for: language)
+        guard let words = protectedWordsList(protectedWords) else { return base }
+        switch language {
+        case .basque:
+            return base + "\nErrespetatu ZEHAZKI grafia hauek (ez zuzendu, ez aldatu): \(words)"
+        case .french:
+            return base + "\nRespecte exactement ces graphies (ne les corrige pas, ne les modifie pas) : \(words)"
+        }
+    }
+
+    /// Mots trimés, vides ignorés, joints « , » — tronqués par mots entiers à
+    /// la même limite prudente que l'amorce whisper (liste UI, pas un corpus).
+    private static func protectedWordsList(_ words: [String]) -> String? {
+        guard let joined = VocabularyPrompt.whisperPrompt(words: words) else { return nil }
+        return joined
+    }
+
+    private static func baseSystem(for language: Language) -> String {
         switch language {
         case .basque:
             return """

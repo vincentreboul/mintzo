@@ -100,6 +100,36 @@ final class CorrectionAnthropicCorrectorTests: XCTestCase {
         XCTAssertEqual(output, "Kaixo, Maite!")
     }
 
+    /// Dictionnaire personnalisé : les graphies transitent jusqu'au corps de la
+    /// requête cloud (section « respecte ces graphies » du prompt système).
+    func testProtectedWordsReachTheSystemPrompt() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let vocabCorrector = AnthropicCorrector(
+            keyProvider: StubKeyProvider(),
+            session: URLSession(configuration: config),
+            protectedWords: ["Bitwip", "Maite"]
+        )
+
+        MockURLProtocol.handler = { request, body in
+            let json = try XCTUnwrap(
+                try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            )
+            let system = try XCTUnwrap(json["system"] as? String)
+            XCTAssertTrue(system.contains("Errespetatu ZEHAZKI grafia hauek"),
+                          "Section graphies absente du prompt système cloud")
+            XCTAssertTrue(system.contains("Bitwip, Maite."))
+
+            let payload = """
+            {"content":[{"type":"text","text":"Kaixo, Maite!"}],"stop_reason":"end_turn"}
+            """
+            return (Self.response(status: 200, url: request.url!), Data(payload.utf8))
+        }
+
+        let output = try await vocabCorrector.correct("kaixo maite", language: .basque)
+        XCTAssertEqual(output, "Kaixo, Maite!")
+    }
+
     func testHTTPErrorSurfacesStatusAndMessage() async {
         MockURLProtocol.handler = { request, _ in
             let payload = """
