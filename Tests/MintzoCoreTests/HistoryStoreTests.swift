@@ -198,7 +198,9 @@ final class HistoryStoreTests: XCTestCase {
                 ))
             }
         }
-        XCTAssertLessThan(elapsed, .seconds(2), "1000 insertions ont pris \(elapsed)")
+        // Seuil large : garde-fou contre une régression d'ordre de grandeur (N+1, fsync par ligne),
+        // pas un benchmark — sous charge machine (builds parallèles) 2 s flake (observé 2026-07-03).
+        XCTAssertLessThan(elapsed, .seconds(8), "1000 insertions ont pris \(elapsed)")
         XCTAssertEqual(try store.fetchAll().count, 1000)
     }
 }
