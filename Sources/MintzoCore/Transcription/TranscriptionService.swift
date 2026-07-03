@@ -67,6 +67,11 @@ public actor TranscriptionService {
 
     private let modelManager: ModelManager
 
+    /// Dictionnaire personnalisé (optionnel) : ses MOTS deviennent l'amorce
+    /// whisper (`initial_prompt`) de chaque transcription — dictée ET fichiers
+    /// passent par `transcribe(samples:language:)`, l'injection couvre les deux.
+    private let vocabulary: VocabularyStore?
+
     /// Moteur chargé (au plus un — un grand modèle = 1,6 à 3,1 Go de RAM).
     private var loadedEngine: (modelID: String, engine: WhisperEngine)?
 
@@ -90,8 +95,9 @@ public actor TranscriptionService {
         let continuation: AsyncStream<TranscriptionJobEvent>.Continuation
     }
 
-    public init(modelManager: ModelManager) {
+    public init(modelManager: ModelManager, vocabulary: VocabularyStore? = nil) {
         self.modelManager = modelManager
+        self.vocabulary = vocabulary
     }
 
     // MARK: - Sélection et chargement du modèle
@@ -252,8 +258,18 @@ public actor TranscriptionService {
         let model = try await selectModel(for: effectiveLanguage)
         let engine = try await engine(for: model)
 
+        // Amorce du dictionnaire : mots joints, tronqués par mots entiers
+        // (~800 caractères — voir VocabularyPrompt). Lue au moment de la
+        // transcription : les réglages en cours de session sont suivis.
+        var initialPrompt: String?
+        if let vocabulary {
+            initialPrompt = VocabularyPrompt.whisperPrompt(words: await vocabulary.words)
+        }
+
         let started = ContinuousClock.now
-        let text = try await engine.transcribe(samples: samples, language: effectiveLanguage)
+        let text = try await engine.transcribe(
+            samples: samples, language: effectiveLanguage, initialPrompt: initialPrompt
+        )
         let elapsed = started.duration(to: .now)
 
         return TranscriptionResult(

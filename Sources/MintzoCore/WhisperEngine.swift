@@ -61,8 +61,18 @@ public actor WhisperEngine {
     /// - Parameters:
     ///   - samples: audio PCM normalisé [-1, 1], mono, 16 000 Hz.
     ///   - language: code langue ISO 639-1 forcé (ex. "fr", "eu") ; `nil` = auto-détection.
+    ///   - initialPrompt: amorce du décodeur (`whisper_full_params.initial_prompt`,
+    ///     champ vérifié dans le whisper.h du xcframework — `const char *`) :
+    ///     graphies du dictionnaire personnalisé (« Bitwip, Maite, Donostia. »).
+    ///     Tokenisée et tronquée en interne par whisper à ~n_ctx/2 (~224 tokens) ;
+    ///     `nil` = pas d'amorce. `carry_initial_prompt` reste à sa valeur par
+    ///     défaut (false) : l'amorce conditionne la première fenêtre de 30 s.
     /// - Returns: le texte transcrit, segments concaténés.
-    public func transcribe(samples: [Float], language: String?) async throws -> String {
+    public func transcribe(
+        samples: [Float],
+        language: String?,
+        initialPrompt: String? = nil
+    ) async throws -> String {
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
         params.print_progress = false
         params.print_realtime = false
@@ -72,10 +82,16 @@ public actor WhisperEngine {
         params.translate = false
         params.n_threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount)))
 
+        // Les DEUX chaînes C (langue, amorce) doivent rester vivantes pendant
+        // tout whisper_full — d'où les withCString imbriqués, jamais de copie
+        // de pointeur hors de leur portée.
         let status = Self.withOptionalCString(language) { langPtr -> Int32 in
-            params.language = langPtr
-            return samples.withUnsafeBufferPointer { buffer in
-                whisper_full(ctx, params, buffer.baseAddress, Int32(buffer.count))
+            Self.withOptionalCString(initialPrompt) { promptPtr -> Int32 in
+                params.language = langPtr
+                params.initial_prompt = promptPtr
+                return samples.withUnsafeBufferPointer { buffer in
+                    whisper_full(ctx, params, buffer.baseAddress, Int32(buffer.count))
+                }
             }
         }
         guard status == 0 else {
