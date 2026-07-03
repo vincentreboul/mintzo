@@ -42,6 +42,11 @@ def llama_ctx_size() -> int:
     return int(os.environ.get("LLAMA_CTX", "4096"))
 
 
+def llama_autostart() -> bool:
+    """Start the resident llama-server at boot (default yes; 0 = correction off)."""
+    return os.environ.get("LLAMA_AUTOSTART", "1") == "1"
+
+
 def max_upload_bytes() -> int:
     """Upload cap: 50 MB per ADR-002."""
     return int(os.environ.get("MAX_UPLOAD_BYTES", str(50 * 1024 * 1024)))
