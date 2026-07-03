@@ -152,6 +152,62 @@ final class HUDStateMachineTests: XCTestCase {
         XCTAssertEqual(HUDLanguage(.french), .fr)
     }
 
+    // MARK: Langue des labels d'état (retour client : langue de session, pas d'UI)
+
+    func testSessionLabelFollowsFixedSelection() {
+        // Badge fixe : les labels parlent la langue dictée, quel que soit le reste.
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .eu, detected: nil, fallback: .fr), .eu)
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .fr, detected: nil, fallback: .eu), .fr)
+    }
+
+    func testSessionLabelAutoBeforeDetectionUsesFallback() {
+        // Mode auto sans verdict : langue de repli de l'utilisateur.
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .auto, detected: nil, fallback: .fr), .fr)
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .auto, detected: nil, fallback: .eu), .eu)
+    }
+
+    func testSessionLabelAutoUsesLiveDetection() {
+        // Verdict live pendant l'écoute : il l'emporte sur le repli.
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .auto, detected: .fr, fallback: .eu), .fr)
+        // Un « détecté » aberrant (auto) ne peut pas fuiter : repli.
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: nil, selection: .auto, detected: .auto, fallback: .eu), .eu)
+    }
+
+    func testSessionLabelResolvedAtStopPrimesOverEverything() {
+        // Langue résolue au stop (celle de l'historique) : prime, y compris sur
+        // une bascule de badge pendant le traitement (session suivante).
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: .eu, selection: .fr, detected: .fr, fallback: .fr), .eu)
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: .fr, selection: .auto, detected: nil, fallback: .eu), .fr)
+        // Une résolution aberrante (auto) est ignorée.
+        XCTAssertEqual(HUDSessionLabel.language(
+            session: .auto, selection: .fr, detected: nil, fallback: .eu), .fr)
+    }
+
+    func testSessionLabelNeverReturnsAuto() {
+        // Le label a besoin d'une langue CONCRÈTE — même sur entrées dégénérées.
+        for session in [HUDLanguage?.none, .eu, .fr, .auto] {
+            for selection in HUDLanguage.allCases {
+                for detected in [HUDLanguage?.none, .eu, .fr, .auto] {
+                    for fallback in HUDLanguage.allCases {
+                        let resolved = HUDSessionLabel.language(
+                            session: session, selection: selection,
+                            detected: detected, fallback: fallback)
+                        XCTAssertNotEqual(resolved, .auto,
+                                          "\(String(describing: session))/\(selection)/\(String(describing: detected))/\(fallback)")
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Mapping RMS → hauteur log 3…22 pt (§4.2)
 
     func testWaveformMappingBounds() {

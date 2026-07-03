@@ -111,6 +111,33 @@ enum HUDLanguage: String, CaseIterable, Sendable {
     }
 }
 
+// MARK: - Langue des labels d'état (retour client)
+
+/// Résolution de la langue des labels d'état de la capsule (« Transkribatzen… »,
+/// « Zuzentzen… », succès, presse-papiers) : la langue de la SESSION de dictée —
+/// « quand on parle en basque, le texte doit être en basque » — jamais la langue
+/// de l'interface. Le résultat est toujours une langue concrète (eu/fr).
+enum HUDSessionLabel {
+    /// - Parameters:
+    ///   - session: langue résolue au stop par le flow (fixe, détectée ou repli) —
+    ///     celle de l'historique. Prime sur tout : une bascule de badge PENDANT
+    ///     le traitement ne concerne que la session suivante.
+    ///   - selection: état courant du badge (eu / fr / auto).
+    ///   - detected: verdict de la détection live du mode auto, s'il a rendu.
+    ///   - fallback: langue de repli du mode auto (réglage utilisateur).
+    static func language(
+        session: HUDLanguage?,
+        selection: HUDLanguage,
+        detected: HUDLanguage?,
+        fallback: HUDLanguage
+    ) -> HUDLanguage {
+        if let session, session != .auto { return session }
+        if selection != .auto { return selection }
+        if let detected, detected != .auto { return detected }
+        return fallback == .auto ? .eu : fallback
+    }
+}
+
 // MARK: - Timer m:ss (§4.2)
 
 enum HUDTimerFormatter {
