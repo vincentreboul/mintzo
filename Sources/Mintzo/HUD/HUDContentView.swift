@@ -26,9 +26,25 @@ enum HUDLayout {
 struct HUDContentView: View {
     let viewModel: HUDViewModel
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var systemReduceTransparency
     @Environment(\.colorScheme) private var colorScheme
+
+    /// Réglages accessibilité, forçables en DEBUG pour la QA
+    /// (`MINTZO_REDUCE_MOTION=1`, `MINTZO_REDUCE_TRANSPARENCY=1`).
+    private var reduceMotion: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["MINTZO_REDUCE_MOTION"] == "1" { return true }
+        #endif
+        return systemReduceMotion
+    }
+
+    private var reduceTransparency: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["MINTZO_REDUCE_TRANSPARENCY"] == "1" { return true }
+        #endif
+        return systemReduceTransparency
+    }
 
     /// État affiché — suit viewModel.state via la chorégraphie de morphing (§4.3).
     @State private var displayedState: HUDState = .idle
@@ -74,10 +90,12 @@ struct HUDContentView: View {
                 Capsule()
                     .strokeBorder(hairlineColor, lineWidth: HUDLayout.hairlineWidth)
             }
-            .background { listeningHalo }
             .compositingGroup()
             .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.20),
                     radius: 12, x: 0, y: 8)
+            // Halo APRÈS l'ombre (pas d'ombre teintée) mais dessiné derrière la capsule ;
+            // .background propose la taille de la capsule, le flou déborde librement.
+            .background { listeningHalo }
             .scaleEffect(capsuleScale)
             .opacity(capsuleOpacity)
             .contentShape(Capsule())
@@ -117,8 +135,9 @@ struct HUDContentView: View {
             )
             .frame(width: HUDLayout.waveformZoneWidth,
                    height: WaveformMapper.maxHeight)
-            Spacer(minLength: 0)
             timerText
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, MzHUD.paddingH)
     }
@@ -229,8 +248,9 @@ struct HUDContentView: View {
     static func errorWidth(message: String) -> CGFloat {
         let font = NSFont.systemFont(ofSize: 12, weight: .medium)
         let text = ceil((message as NSString).size(withAttributes: [.font: font]).width)
-        let icon: CGFloat = 16
-        let width = MzHUD.paddingH + icon + MzHUD.itemSpacing + text + MzHUD.paddingH
+        let icon: CGFloat = 18   // exclamationmark.triangle à 13 pt
+        let safety: CGFloat = 4  // arrondis de rendu — jamais de troncature d'un texte qui tient
+        let width = MzHUD.paddingH + icon + MzHUD.itemSpacing + text + safety + MzHUD.paddingH
         return min(max(width, HUDState.success.fixedWidth ?? 112), HUDState.error(message: "").maxWidth)
     }
 
@@ -254,7 +274,9 @@ struct HUDContentView: View {
         return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
     }
 
-    /// Halo d'écoute : `MzGorriBizi` 12 % → 18 % → 12 %, opacité seule, 3,2 s (§7).
+    /// Halo d'écoute : capsule `MzGorriBizi` floutée derrière la capsule,
+    /// opacité seule 12 % → 18 % → 12 %, 3,2 s (§7). Sur le verre réel (givré),
+    /// il se lit comme une lueur de bord — le rendu offscreen l'exagère.
     @ViewBuilder
     private var listeningHalo: some View {
         if displayedState == .listening {

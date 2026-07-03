@@ -103,8 +103,13 @@ enum MenuBarGlyph {
 /// Icône vivante : repos template, enregistrement en barres GorriBizi (cycle 900 ms),
 /// traitement en point pulsé (1,6 s), erreur badgée orange.
 /// Bascule de langue hors session : le glyphe laisse place au texte 1 s (§5.2).
+///
+/// Vue PASSIVE : la cadence d'animation vient d'AppModel (`frame` incrémenté par une
+/// Task). JAMAIS de TimelineView ici — un schedule ré-ancré dans un label de
+/// MenuBarExtra relance updateButton en boucle et sature le main thread (observé).
 struct MenuBarIconView: View {
     let state: MenuBarState
+    let frame: Int
     let languageFlash: HUDLanguage?
 
     var body: some View {
@@ -117,29 +122,12 @@ struct MenuBarIconView: View {
             case .idle:
                 Image(nsImage: MenuBarGlyph.idle)
             case .recording:
-                TimelineView(.periodic(from: .now, by: MenuBarGlyph.recordingFrameInterval)) { timeline in
-                    Image(nsImage: MenuBarGlyph.recordingFrames[frameIndex(
-                        date: timeline.date,
-                        interval: MenuBarGlyph.recordingFrameInterval,
-                        count: MenuBarGlyph.recordingFrames.count
-                    )])
-                }
+                Image(nsImage: MenuBarGlyph.recordingFrames[frame % MenuBarGlyph.recordingFrames.count])
             case .processing:
-                TimelineView(.periodic(from: .now, by: MenuBarGlyph.processingPulseDuration / 8)) { timeline in
-                    Image(nsImage: MenuBarGlyph.processingFrames[frameIndex(
-                        date: timeline.date,
-                        interval: MenuBarGlyph.processingPulseDuration / 8,
-                        count: MenuBarGlyph.processingFrames.count
-                    )])
-                }
+                Image(nsImage: MenuBarGlyph.processingFrames[frame % MenuBarGlyph.processingFrames.count])
             case .error:
                 Image(nsImage: MenuBarGlyph.error)
             }
         }
-    }
-
-    private func frameIndex(date: Date, interval: TimeInterval, count: Int) -> Int {
-        let t = date.timeIntervalSinceReferenceDate
-        return Int((t / interval).rounded(.down)) % count
     }
 }

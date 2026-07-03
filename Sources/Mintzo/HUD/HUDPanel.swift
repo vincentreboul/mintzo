@@ -69,6 +69,11 @@ final class HUDPanelController {
         observeState()
     }
 
+    #if DEBUG
+    /// QA : accès au contentView pour les snapshots (MINTZO_HUD_SNAPSHOT_DIR).
+    var panelContentView: NSView? { panel.contentView }
+    #endif
+
     // MARK: Zone interactive = capsule seulement
 
     private static func capsuleRect(for state: HUDState, in view: NSView) -> NSRect {
