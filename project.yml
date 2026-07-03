@@ -34,6 +34,8 @@ targets:
       - target: MintzoCore
       - framework: Vendor/whisper.xcframework
         embed: true
+      - framework: Vendor/llama.xcframework
+        embed: true
       - package: KeyboardShortcuts
     info:
       path: Sources/Mintzo/Info.plist
@@ -61,6 +63,8 @@ targets:
     dependencies:
       - framework: Vendor/whisper.xcframework
         embed: false
+      - framework: Vendor/llama.xcframework
+        embed: false
       - package: KeyboardShortcuts
       - package: GRDB
     settings:
@@ -78,4 +82,6 @@ targets:
     dependencies:
       - target: MintzoCore
       - framework: Vendor/whisper.xcframework
+        embed: true
+      - framework: Vendor/llama.xcframework
         embed: true
