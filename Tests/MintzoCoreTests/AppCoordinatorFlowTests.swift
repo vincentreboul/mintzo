@@ -345,6 +345,39 @@ final class AppCoordinatorFlowTests: XCTestCase {
         XCTAssertTrue(harness.phases.contains(.correcting))
     }
 
+    // MARK: Dictionnaire (post-pass remplacements)
+
+    func testVocabularyReplacementsApplyWithoutCorrection() async throws {
+        // Exemple du design : « mine tso » → « Mintzo », correction désactivée.
+        let harness = FlowHarness()
+        harness.transcriber.textToReturn = "gaur mine tso probatu dut"
+        harness.flow.vocabularyReplacements = {
+            [VocabularyReplacement(heard: "mine tso", replacement: "Mintzo")]
+        }
+
+        try await harness.runFullSession()
+
+        XCTAssertEqual(harness.inserter.insertedTexts, ["Gaur Mintzo probatu dut"])
+        // L'historique garde le brut moteur ET le texte livré.
+        XCTAssertEqual(harness.history.records.first?.texteBrut, "gaur mine tso probatu dut")
+        XCTAssertEqual(harness.history.records.first?.texteCorrige, "Gaur Mintzo probatu dut")
+    }
+
+    func testVocabularyReplacementsApplyAfterCorrection() async throws {
+        // Ordre du design : correction PUIS remplacements — la règle matche
+        // la sortie du correcteur, pas le brut.
+        let harness = FlowHarness()
+        harness.transcriber.textToReturn = "gaur mine tso probatu dut"
+        harness.flow.makeCorrector = { MockCorrector(output: "Gaur mine tso probatu dut.") }
+        harness.flow.vocabularyReplacements = {
+            [VocabularyReplacement(heard: "mine tso", replacement: "Mintzo")]
+        }
+
+        try await harness.runFullSession()
+
+        XCTAssertEqual(harness.inserter.insertedTexts, ["Gaur Mintzo probatu dut."])
+    }
+
     // MARK: Erreurs capture
 
     func testCaptureStartFailureEndsSessionWithError() async throws {
