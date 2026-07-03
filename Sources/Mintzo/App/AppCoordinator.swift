@@ -37,6 +37,16 @@ final class AppCoordinator {
     @ObservationIgnored private(set) var flow: DictationFlow!
     @ObservationIgnored private var latxaLoader: LatxaEngineLoader?
 
+    /// Audio conservé des transcriptions (réécoute / relance) — nil si
+    /// Application Support est indisponible : l'app vit sans audio conservé,
+    /// les entrées naissent simplement avec audioPath nil.
+    @ObservationIgnored private let audioStore = try? TranscriptionAudioStore.standard()
+
+    /// Relance d'une entrée sur son audio conservé (détail de transcription).
+    /// Publié via `ReplayService.shared` : la scène de la fenêtre principale
+    /// est construite dans MintzoApp, le détail lit le registre.
+    @ObservationIgnored private(set) var replayService: ReplayService!
+
     /// Dictionnaire personnalisé (onglet Hiztegia) : mots (graphies) +
     /// remplacements — injectés dans whisper, la correction et le post-pass.
     let vocabularyStore: VocabularyStore
@@ -135,6 +145,8 @@ final class AppCoordinator {
         )
         fileQueue = FileTranscriptionQueue(transcriber: transcriptionService, history: historyStore)
         modelLibrary = ModelLibraryController.standard(manager: modelManager)
+        replayService = ReplayService(transcriber: transcriptionService, history: historyStore)
+        ReplayService.shared = replayService
 
         hudPanel = HUDPanelController(viewModel: hud)
         flow = makeFlow()
@@ -204,6 +216,7 @@ final class AppCoordinator {
         hud.setLanguage(AppSettings.language)
         wireFlowCallbacks()
         wireFileQueueCallbacks()
+        wireReplayCallbacks()
         startHotkeyPump()
         startLanguageCycleHotkey()
         observeLanguageChanges()
@@ -241,6 +254,7 @@ final class AppCoordinator {
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
         }
+        flow.persistAudio = Self.makePersistAudio(store: audioStore, contexte: "dictée")
         flow.onPhaseChange = { [weak self] phase in self?.handlePhaseChange(phase) }
         flow.onLevel = { [weak self] rms in self?.hud.ingest(rms: Double(rms)) }
         flow.onOutcome = { [weak self] outcome in self?.handleOutcome(outcome) }
@@ -489,6 +503,34 @@ final class AppCoordinator {
             NSLog("Mintzo: transcription de « %@ » échouée — %@", fileName, message)
             self?.flashFileError()
         }
+        fileQueue.persistAudio = Self.makePersistAudio(store: audioStore, contexte: "fichier")
+    }
+
+    /// Écriture du WAV conservé — best effort partagé dictée/fichiers :
+    /// échec → log + nil, JAMAIS un échec de la transcription.
+    private static func makePersistAudio(
+        store: TranscriptionAudioStore?, contexte: String
+    ) -> @Sendable ([Float]) -> String? {
+        { samples in
+            guard let store else { return nil }
+            do {
+                return try store.write(samples: samples).path
+            } catch {
+                NSLog("Mintzo: écriture de l'audio (%@) échouée — %@",
+                      contexte, error.localizedDescription)
+                return nil
+            }
+        }
+    }
+
+    /// La relance suit les MÊMES réglages du moment que la dictée et les
+    /// fichiers : correcteur, dictionnaire, langue de repli.
+    private func wireReplayCallbacks() {
+        replayService.makeCorrector = { [weak self] in self?.makeCorrector() }
+        replayService.vocabularyReplacements = { [weak self] in
+            self?.vocabularyStore.replacements ?? []
+        }
+        replayService.fallbackLanguage = { AppSettings.fallbackLanguage }
     }
 
     /// Point d'entrée du drop fenêtre entière (§6.3) et du picker menu bar.
