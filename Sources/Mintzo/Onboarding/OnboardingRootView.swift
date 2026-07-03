@@ -35,6 +35,7 @@ struct OnboardingScene: Scene {
 struct OnboardingRootView: View {
     @State private var controller: OnboardingController
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openWindow) private var openWindow
 
     init(coordinator: AppCoordinator) {
         _controller = State(initialValue: OnboardingController(coordinator: coordinator))
@@ -43,7 +44,12 @@ struct OnboardingRootView: View {
     var body: some View {
         OnboardingContainerView(controller: controller) {
             controller.finish()
+            // « Amaitu » présente la fenêtre principale au premier plan
+            // (retour client) : l'app ne disparaît pas dans la barre de menus
+            // à la fin de l'onboarding — on atterrit quelque part.
+            openWindow(id: WindowSceneID.main)
             dismiss()
+            NSApp.activate()
         }
         #if DEBUG
         // Capture QA : l'app accessoire lancée du terminal ne peut pas devenir
