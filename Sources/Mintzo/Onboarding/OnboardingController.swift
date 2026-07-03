@@ -40,8 +40,12 @@ final class OnboardingController {
 
     #if DEBUG
     /// Surcharges du harnais de snapshots QA (états permissions/download figés).
-    @ObservationIgnored var qaModelRowOverride: ModelRowState?
-    @ObservationIgnored var qaTrialPhaseOverride: OnboardingTrial.Phase?
+    /// OBSERVABLES (pas `@ObservationIgnored`) : le harnais capture la fenêtre
+    /// LIVE — la mutation d'une surcharge doit invalider la vue, sinon la
+    /// capture montre l'état précédent (bug R1 : eredua-errorea/prest figés
+    /// sur l'état deskargatzen).
+    var qaModelRowOverride: ModelRowState?
+    var qaTrialPhaseOverride: OnboardingTrial.Phase?
     #endif
 
     init(coordinator: AppCoordinator) {
@@ -180,7 +184,7 @@ final class OnboardingController {
     // MARK: - Harnais QA (snapshots)
 
     #if DEBUG
-    /// Fige un état complet pour un rendu `ImageRenderer` (OnboardingSnapshots).
+    /// Fige un état complet pour une capture de la fenêtre live (OnboardingSnapshots).
     func qaConfigure(
         screen: OnboardingScreen,
         microphone: PermissionStatus,
@@ -192,6 +196,11 @@ final class OnboardingController {
         journey = OnboardingJourney()
         while journey.screen != screen { journey.advance() }
         permissions = PermissionsSnapshot(microphone: microphone, accessibility: accessibility)
+        // Cohérence picker ↔ carte : la surcharge fixe le modèle affiché, la
+        // langue sélectionnée doit raconter la même histoire.
+        if let modelRow {
+            selectedLanguage = modelRow.model.id == ModelCatalog.whisperFR.id ? .fr : .eu
+        }
         qaModelRowOverride = modelRow
         qaTrialPhaseOverride = trialPhase
         self.trialText = trialText
