@@ -39,6 +39,12 @@ enum MzL10n {
 
     // MARK: - Fenêtre principale
 
+    static var dictateNow: String { t("Diktatu", "Dicter", "Dictate") }
+    static var dictateNowHelp: String {
+        t("Hasi diktaketa mikrofonoarekin — laster-teklarik gabe",
+          "Démarrer la dictée au micro — sans raccourci ni Accessibilité",
+          "Start dictating with the microphone — no shortcut needed")
+    }
     static var filterDena: String { t("Dena", "Tout", "All") }
     static var filterDiktaketak: String { t("Diktaketak", "Dictées", "Dictations") }
     static var filterFitxategiak: String { t("Fitxategiak", "Fichiers", "Files") }

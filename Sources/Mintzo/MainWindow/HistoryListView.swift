@@ -52,6 +52,16 @@ struct HistoryListView: View {
                     ToolbarItem(placement: .principal) {
                         filterPicker
                     }
+                    // Départ de dictée SANS raccourci ni Accessibilité (micro seul) —
+                    // utile pour tester et comme chemin de secours permanent.
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
+                        } label: {
+                            Label(MzL10n.dictateNow, systemImage: "mic")
+                        }
+                        .help(MzL10n.dictateNowHelp)
+                    }
                 }
                 .searchable(
                     text: $searchText,
@@ -128,6 +138,14 @@ struct HistoryListView: View {
                 Text(MzL10n.emptySubtitle)
             }
             .padding(.top, 2)
+        } actions: {
+            Button {
+                NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
+            } label: {
+                Label(MzL10n.dictateNow, systemImage: "mic")
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
     }
 
