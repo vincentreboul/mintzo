@@ -22,7 +22,7 @@ Euskarak lehen mailako tresnak merezi ditu — ingelesak eta frantsesak dituzten
 
 ## Egoera
 
-Garapen aktiboan. **[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran, eskuin-klik aplikazioan eta « Ireki ». Lineako tresna: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+Garapen aktiboan. **[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran macOS-ek blokeatzen du: Sistemaren ezarpenak › Pribatutasuna eta segurtasuna › « Ireki hala ere ». Lineako tresna: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Ekarpenak ongi etorriak dira; ikus [CONTRIBUTING.md](CONTRIBUTING.md).
 

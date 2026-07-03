@@ -53,7 +53,7 @@
 		"installMacCta": "Download for Mac",
 		"installMacMeta": "{version} · 11 MB · development build",
 		"installMac1": "Unzip, then drag Mintzo into Applications.",
-		"installMac2": "On first launch, right-click the app and choose “Open”: the development build is unsigned, so macOS shows a warning — that is expected.",
+		"installMac2": "On first launch, macOS blocks the app (unsigned development build, this is expected). Open System Settings › Privacy & Security, scroll to the Mintzo message and click “Open Anyway”.",
 		"installMac3": "Follow the assistant: microphone access, then the Basque model (~3 GB, downloaded once).",
 		"installMacAlt": "Or build from source — GitHub",
 		"installPwaKicker": "iPhone · Android",

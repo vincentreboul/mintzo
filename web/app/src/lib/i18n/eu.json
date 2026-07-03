@@ -53,7 +53,7 @@
 		"installMacCta": "Deskargatu Mac-erako",
 		"installMacMeta": "{version} · 11 MB · garapen-bertsioa",
 		"installMac1": "Deskonprimitu zip-a, eta arrastatu Mintzo Aplikazioak karpetara.",
-		"installMac2": "Lehen irekieran, eskuin-klik aplikazioan eta « Ireki »: garapen-bertsioa sinatu gabe dago, macOS-ek abisu bat erakusten du — normala da.",
+		"installMac2": "Lehen irekieran, macOS-ek aplikazioa blokeatzen du (garapen-bertsioa sinatu gabe, normala da). Ireki Sistemaren ezarpenak › Pribatutasuna eta segurtasuna, jaitsi Mintzoren mezuraino eta sakatu « Ireki hala ere ».",
 		"installMac3": "Jarraitu laguntzaileari: mikrofonoaren baimena, eta euskarazko eredua (~3 GB, behin bakarrik deskargatzen da).",
 		"installMacAlt": "Edo eraiki iturburutik — GitHub",
 		"installPwaKicker": "iPhone · Android",

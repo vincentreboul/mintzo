@@ -22,7 +22,7 @@ L'euskara mérite des outils de premier rang — au niveau de ceux dont bénéfi
 
 ## État
 
-En développement actif. **[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : à la première ouverture, clic droit sur l'app puis « Ouvrir ». L'outil en ligne : [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+En développement actif. **[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : au premier lancement macOS bloque l’app : Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ». L'outil en ligne : [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Les contributions sont bienvenues ; voir [CONTRIBUTING.md](CONTRIBUTING.md).
 

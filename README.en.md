@@ -22,7 +22,7 @@ Basque deserves first-rank tools — on par with what English or French speakers
 
 ## Status
 
-Under active development. **[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch, right-click the app and choose "Open". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+Under active development. **[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch macOS blocks it: System Settings › Privacy & Security › "Open Anyway". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 

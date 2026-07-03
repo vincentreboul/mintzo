@@ -53,7 +53,7 @@
 		"installMacCta": "Télécharger pour Mac",
 		"installMacMeta": "{version} · 11 Mo · version de développement",
 		"installMac1": "Dézippez, puis glissez Mintzo dans Applications.",
-		"installMac2": "À la première ouverture, clic droit sur l’app puis « Ouvrir » : le build de développement n’est pas signé, macOS affiche un avertissement — c’est attendu.",
+		"installMac2": "Au premier lancement, macOS bloque l’app (build de développement non signé, c’est attendu). Ouvrez Réglages Système › Confidentialité et sécurité, descendez jusqu’au message Mintzo et cliquez « Ouvrir quand même ».",
 		"installMac3": "Suivez l’assistant : l’accès au micro, puis le modèle basque (~3 Go, téléchargé une seule fois).",
 		"installMacAlt": "Ou construire depuis les sources — GitHub",
 		"installPwaKicker": "iPhone · Android",
