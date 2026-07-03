@@ -82,13 +82,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
 
-        // Lancement MANUEL (Finder / Launchpad) après onboarding : montrer la
-        // fenêtre principale — une app qui démarre invisible est le premier
-        // « il ne se passe rien » du client. Login item : discret.
-        // (L'onboarding jamais terminé se présente déjà tout seul :
-        // `OnboardingScene.defaultLaunchBehavior`.)
-        if !launchedAsLoginItem, OnboardingGate.hasCompleted() {
-            presentWindow(id: WindowSceneID.main, activating: true)
+        // Lancement MANUEL (Finder / Launchpad) : TOUJOURS une fenêtre visible
+        // au premier plan — une app qui démarre invisible est le premier
+        // « il ne se passe rien » du client. Premier lancement : l'onboarding.
+        // Ensuite : la fenêtre principale. Login item : discret.
+        //
+        // L'onboarding jamais terminé se présente certes tout seul
+        // (`OnboardingScene.defaultLaunchBehavior(.presented)`) MAIS l'app est
+        // un accessoire (`LSUIElement`) : le système ne l'active pas au
+        // lancement, la fenêtre naissait DERRIÈRE l'app frontale, sans focus —
+        // vécue comme « pas de fenêtre » (retour client, 1er lancement).
+        // Ici : présentation via le pont `openWindow` + `NSApp.activate()`
+        // (différées au câblage du pont si nécessaire) → premier plan garanti.
+        if !launchedAsLoginItem {
+            let id = OnboardingGate.hasCompleted()
+                ? WindowSceneID.main
+                : WindowSceneID.onboarding
+            presentWindow(id: id, activating: true)
         }
     }
 
