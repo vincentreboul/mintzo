@@ -29,6 +29,7 @@ Première ouverture : 3 écrans max — (1) micro + accessibilité avec explicat
 
 ## Non-goals V1
 - Site web (phase 2), Windows/Linux, iOS.
+  - **Contrainte actée pour la phase 2 (Vincent, 2026-07-03)** : le site web devra aussi accepter et décoder les vocaux WhatsApp `.opus`. Faisable sans dépendre de CoreAudio : décodage côté serveur (ffmpeg/libopus) ou côté navigateur (Web Audio API / WebCodecs — support Safari à valider à ce moment-là). À intégrer dès la conception de l'API d'upload.
 - Diarization multi-locuteurs, traduction, résumé, export sous-titres.
 - Multi-user, comptes, télémétrie (AUCUNE télémétrie — argument privacy).
 - App Store (distribution DMG GitHub + Homebrew en phase lancement).
