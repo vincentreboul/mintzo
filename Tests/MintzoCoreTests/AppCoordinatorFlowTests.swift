@@ -39,12 +39,18 @@ private final class MockCapture: DictationCapturing {
 private final class MockTranscriber: DictationTranscribing {
     var textToReturn = "kaixo mundua"
     var errorToThrow: (any Error)?
+    /// Transcription artificiellement lente — tient la phase `.transcribing`
+    /// le temps de tester l'annulation par la croix / Échap.
+    var delay: Duration = .zero
     private(set) var lastLanguage: String??
     private(set) var lastSampleCount: Int?
 
     func transcribe(samples: [Float], language: String?) async throws -> TranscriptionResult {
         lastLanguage = language
         lastSampleCount = samples.count
+        if delay > .zero {
+            try? await Task.sleep(for: delay)
+        }
         if let errorToThrow { throw errorToThrow }
         return TranscriptionResult(
             text: textToReturn,
@@ -391,6 +397,73 @@ final class AppCoordinatorFlowTests: XCTestCase {
         XCTAssertTrue(harness.inserter.insertedTexts.isEmpty)
         XCTAssertTrue(harness.history.records.isEmpty)
         XCTAssertEqual(harness.flow.phase, .idle)
+    }
+
+    /// Croix / Échap PENDANT la transcription (retour client) : abort propre,
+    /// aucun texte inséré, rien d'historisé, aucun outcome parasite quand le
+    /// moteur finit dans son coin.
+    func testCancelDuringTranscriptionInsertsNothing() async throws {
+        let harness = FlowHarness()
+        harness.transcriber.delay = .milliseconds(400)
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
+        try await harness.waitUntil("transcription en cours") { harness.flow.phase == .transcribing }
+
+        harness.flow.cancel()
+
+        XCTAssertEqual(harness.flow.phase, .idle, "Sortie immédiate, pas d'attente du moteur")
+        XCTAssertEqual(harness.outcomes, [.cancelled])
+        // Le moteur mocké termine sa course (400 ms) : son résultat est jeté.
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertTrue(harness.inserter.insertedTexts.isEmpty)
+        XCTAssertTrue(harness.history.records.isEmpty)
+        XCTAssertEqual(harness.outcomes, [.cancelled], "Aucun outcome après l'annulation")
+    }
+
+    /// Croix / Échap PENDANT la correction : le texte brut existe déjà mais ne
+    /// doit NI être inséré NI être historisé.
+    func testCancelDuringCorrectionInsertsNothing() async throws {
+        let harness = FlowHarness()
+        harness.flow.makeCorrector = { MockCorrector(output: "zuzenduta", delay: .milliseconds(400)) }
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
+        try await harness.waitUntil("correction en cours") { harness.flow.phase == .correcting }
+
+        harness.flow.cancel()
+
+        XCTAssertEqual(harness.flow.phase, .idle)
+        XCTAssertEqual(harness.outcomes, [.cancelled])
+        try await Task.sleep(for: .milliseconds(600))
+        XCTAssertTrue(harness.inserter.insertedTexts.isEmpty)
+        XCTAssertTrue(harness.history.records.isEmpty)
+        XCTAssertEqual(harness.outcomes, [.cancelled], "Aucun outcome après l'annulation")
+    }
+
+    /// Une nouvelle dictée reste possible immédiatement après une annulation
+    /// en cours de traitement (pas d'état fantôme).
+    func testNewSessionAfterCancelDuringProcessing() async throws {
+        let harness = FlowHarness()
+        harness.transcriber.delay = .milliseconds(300)
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
+        try await harness.waitUntil("transcription en cours") { harness.flow.phase == .transcribing }
+        harness.flow.cancel()
+
+        harness.transcriber.delay = .zero
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("2e écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
+        try await harness.waitUntil("2e outcome émis") { harness.outcomes.count == 2 }
+
+        XCTAssertEqual(harness.outcomes, [.cancelled, .inserted])
+        XCTAssertEqual(harness.inserter.insertedTexts, ["Kaixo mundua"])
+        XCTAssertEqual(harness.history.records.count, 1)
     }
 
     func testTooShortSessionIsCancelledNotFailed() async throws {

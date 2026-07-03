@@ -41,6 +41,9 @@ enum MzStrings {
     static var inserted: String { pick("Itsatsita", "Inséré", "Inserted") }
     /// Action VoiceOver de la capsule (§10 : la capsule est un bouton « Gelditu »).
     static var stop: String { pick("Gelditu", "Arrêter", "Stop") }
+    /// Croix d'annulation de la capsule (tooltip + VoiceOver) : abandon de la
+    /// session en cours, aucun texte inséré.
+    static var cancel: String { pick("Utzi", "Annuler", "Cancel") }
     /// Tooltip du badge langue (§4.4). Sans mention du raccourci ⌃⌥L tant
     /// qu'il n'est pas implémenté — un tooltip ne promet pas dans le vide.
     static var languageBadgeHelp: String { "eu / fr / auto" }

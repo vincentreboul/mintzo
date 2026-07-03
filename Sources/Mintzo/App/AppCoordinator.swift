@@ -46,6 +46,11 @@ final class AppCoordinator {
     /// dans Orokorra, appliquée au lancement par l'AppDelegate.
     let presence = AppPresenceService()
 
+    /// Apparence (système / clair / sombre) — réglable à chaud dans Orokorra,
+    /// appliquée au lancement dans `init` (avant la création de toute fenêtre :
+    /// la capsule HUD, les Réglages et la fenêtre principale suivent).
+    let appearance = AppearanceService()
+
     // MARK: Actions fenêtres (injectées par la scène au premier rendu)
 
     @ObservationIgnored private var openMainWindowAction: () -> Void = {}
@@ -103,8 +108,13 @@ final class AppCoordinator {
     // MARK: - Init
 
     init() {
+        // Apparence persistée (système / clair / sombre) : appliquée avant la
+        // création de toute fenêtre — le HUD naît dans la bonne apparence.
+        appearance.applyCurrentMode()
+
         #if DEBUG
-        // QA : force l'apparence de l'app (audit light/dark sans toucher au système).
+        // QA : force l'apparence de l'app (audit light/dark sans toucher au
+        // système). Prime sur le réglage persisté — posée APRÈS lui.
         if let forced = ProcessInfo.processInfo.environment["MINTZO_APPEARANCE"] {
             NSApplication.shared.appearance = NSAppearance(
                 named: forced == "dark" ? .darkAqua : .aqua
@@ -227,6 +237,11 @@ final class AppCoordinator {
             guard let self else { return }
             self.flow.handle(.pressEnded, selection: self.dictationSelection)
         }
+        // Croix de la capsule : abandon propre — capture stoppée, tâches
+        // whisper/llama annulées, aucun texte inséré, HUD refermé (motion.exit).
+        hud.onCancelRequested = { [weak self] in
+            self?.flow.cancel()
+        }
         hud.onErrorTapped = { [weak self] in
             guard let self else { return }
             switch self.hudErrorDestination {
@@ -253,7 +268,8 @@ final class AppCoordinator {
             hud.transition(to: .listening)
             installEscapeMonitors()
         case .transcribing:
-            removeEscapeMonitors()
+            // Les moniteurs Échap restent en place : l'annulation couvre
+            // aussi la transcription et la correction (retour client).
             hud.transition(to: .transcribing)
         case .correcting:
             hud.transition(to: .correcting)
@@ -330,7 +346,7 @@ final class AppCoordinator {
         flow.handle(event, selection: dictationSelection)
     }
 
-    // MARK: - Échap = annulation pendant l'écoute (§4.1)
+    // MARK: - Échap = annulation de la session (écoute, transcription, correction)
 
     private func installEscapeMonitors() {
         guard escapeMonitors.isEmpty else { return }
@@ -366,7 +382,7 @@ final class AppCoordinator {
     }
 
     fileprivate func escapePressed() {
-        guard flow.phase == .listening else { return }
+        guard flow.phase != .idle else { return }
         flow.cancel()
     }
 
@@ -570,6 +586,7 @@ final class AppCoordinator {
     /// cycle des états toutes les 3 s. `MINTZO_HUD_PREVIEW_STATE=<état>` : fige un état.
     private func startHUDPreview() {
         hud.onStopRequested = { [weak self] in self?.hud.transition(to: .transcribing) }
+        hud.onCancelRequested = { [weak self] in self?.hud.transition(to: .idle) }
         startSimulatedVoiceFeed()
 
         previewTask = Task { [hud] in

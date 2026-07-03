@@ -55,6 +55,7 @@ struct HUDContentView: View {
     @State private var haloBreathing = false
     @State private var successWashX: CGFloat = -1
     @State private var morphTask: Task<Void, Never>?
+    @State private var cancelHovering = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -105,6 +106,7 @@ struct HUDContentView: View {
             .accessibilityLabel(accessibilityStateLabel)
             .accessibilityAddTraits(.isButton)
             .accessibilityAction(named: MzStrings.stop) { viewModel.capsuleTapped() }
+            .accessibilityAction(named: MzStrings.cancel) { viewModel.cancelTapped() }
     }
 
     @ViewBuilder
@@ -139,8 +141,29 @@ struct HUDContentView: View {
             timerText
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .trailing)
+            cancelButton
         }
         .padding(.horizontal, MzHUD.paddingH)
+    }
+
+    /// Croix d'annulation — visible dans tous les états actifs (écoute,
+    /// transcription, correction). Le seul « abandonne » : le clic capsule
+    /// hors croix reste « stop et transcris » pendant l'écoute (§4.1).
+    private var cancelButton: some View {
+        Image(systemName: "xmark")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(MzColor.inkSecondary)
+            .frame(width: 18, height: 18)
+            .background {
+                if cancelHovering {
+                    Circle().fill(MzColor.ink.opacity(0.10))
+                }
+            }
+            .contentShape(Circle())
+            .onHover { cancelHovering = $0 }
+            .onTapGesture { viewModel.cancelTapped() }
+            .help(MzStrings.cancel)
+            .accessibilityHidden(true) // la capsule expose l'action « Utzi » (§10)
     }
 
     private var languageBadge: some View {
@@ -181,6 +204,7 @@ struct HUDContentView: View {
                 .lineLimit(1)
                 .id(label)
                 .transition(.opacity)
+            cancelButton
         }
     }
 

@@ -23,11 +23,13 @@ enum HUDState: Equatable, Sendable {
 
     /// Largeur fixe de la capsule (pt). `nil` = largeur au contenu
     /// (erreur, succès à message custom) ou masqué (idle).
+    /// Largeurs §4.3 élargies de ~24 pt : les états actifs portent la croix
+    /// d'annulation (18 pt + respiration) en fin de capsule.
     var fixedWidth: CGFloat? {
         switch self {
         case .idle: nil
-        case .listening: 208
-        case .transcribing, .correcting: 156
+        case .listening: 236
+        case .transcribing, .correcting: 180
         case .success(let message): message == nil ? 112 : nil
         case .error: nil
         }

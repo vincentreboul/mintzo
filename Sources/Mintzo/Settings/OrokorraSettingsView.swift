@@ -64,6 +64,17 @@ struct OrokorraSettingsView: View {
                     .foregroundStyle(MzColor.inkSecondary)
             }
 
+            // Apparence : système / clair / sombre — appliquée à chaud sur
+            // toute l'app (fenêtres, Réglages, capsule HUD).
+            Section {
+                Picker(SettingsStrings.appearanceLabel, selection: appearanceMode) {
+                    Text(SettingsStrings.appearanceSystem).tag(AppAppearanceMode.system)
+                    Text(SettingsStrings.appearanceLight).tag(AppAppearanceMode.light)
+                    Text(SettingsStrings.appearanceDark).tag(AppAppearanceMode.dark)
+                }
+                .pickerStyle(.segmented)
+            }
+
             Section {
                 Toggle(SettingsStrings.loginItemToggle, isOn: $openAtLogin)
                 if loginNeedsApproval {
@@ -72,7 +83,7 @@ struct OrokorraSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 470)
+        .frame(height: 530)
         .onChange(of: fnEnabled) { _, newValue in
             AppSettings.fnKeyEnabled = newValue
             coordinator.hotkeySettingsChanged()
@@ -109,6 +120,17 @@ struct OrokorraSettingsView: View {
         Binding(
             get: { coordinator.presence.mode },
             set: { coordinator.presence.setMode($0) }
+        )
+    }
+
+    // MARK: - Apparence (système / clair / sombre)
+
+    /// Liaison directe sur le service : `setMode` persiste et applique à chaud
+    /// (`NSApp.appearance`) — fenêtres, Réglages et capsule HUD suivent.
+    private var appearanceMode: Binding<AppAppearanceMode> {
+        Binding(
+            get: { coordinator.appearance.mode },
+            set: { coordinator.appearance.setMode($0) }
         )
     }
 

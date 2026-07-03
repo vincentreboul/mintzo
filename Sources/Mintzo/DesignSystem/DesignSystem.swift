@@ -130,8 +130,9 @@ enum MzHUD {
     static let paddingH: CGFloat = 14
     static let itemSpacing: CGFloat = 10
     static let bottomOffset: CGFloat = 24
-    static let widthListening: CGFloat = 208
-    static let widthProcessing: CGFloat = 156
+    // Largeurs §4.3 +~24 pt : croix d'annulation dans les états actifs.
+    static let widthListening: CGFloat = 236
+    static let widthProcessing: CGFloat = 180
     static let widthSuccess: CGFloat = 112
     static let widthErrorMax: CGFloat = 320
     // Ombre de la capsule (§4.1 : y 8, blur 24 — blur CSS = 2 × radius SwiftUI)

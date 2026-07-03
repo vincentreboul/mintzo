@@ -86,6 +86,18 @@ enum SettingsStrings {
              "En mode Dock seul, la dictée reste accessible par le raccourci.",
              "In Dock-only mode, dictation stays available through the shortcut.")
     }
+    static var appearanceLabel: String {
+        pick("Itxura", "Apparence", "Appearance")
+    }
+    static var appearanceSystem: String {
+        pick("Sistema", "Système", "System")
+    }
+    static var appearanceLight: String {
+        pick("Argia", "Clair", "Light")
+    }
+    static var appearanceDark: String {
+        pick("Iluna", "Sombre", "Dark")
+    }
 
     // MARK: Ereduak
 
