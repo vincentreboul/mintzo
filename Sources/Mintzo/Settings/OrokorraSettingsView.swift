@@ -30,6 +30,9 @@ struct OrokorraSettingsView: View {
                 .pickerStyle(.segmented)
 
                 KeyboardShortcuts.Recorder(SettingsStrings.shortcutLabel, name: .dictation)
+
+                // Cycle de langue eu → fr → auto (§4.4) — défaut ⌃⌥L.
+                KeyboardShortcuts.Recorder(SettingsStrings.languageShortcutLabel, name: .languageCycle)
             }
 
             Section {

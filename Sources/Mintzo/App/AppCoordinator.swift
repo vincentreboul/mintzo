@@ -30,6 +30,7 @@ final class AppCoordinator {
     @ObservationIgnored let modelManager = ModelManager()
     @ObservationIgnored let permissions = PermissionsService()
     @ObservationIgnored private let hotkeys = HotkeyService()
+    @ObservationIgnored private let languageCycleHotkey = LanguageCycleHotkey()
     @ObservationIgnored private let captureService = CaptureService()
     @ObservationIgnored private let transcriptionService: TranscriptionService
     @ObservationIgnored private let insertionService = InsertionService()
@@ -190,6 +191,7 @@ final class AppCoordinator {
         wireFlowCallbacks()
         wireFileQueueCallbacks()
         startHotkeyPump()
+        startLanguageCycleHotkey()
         observeLanguageChanges()
         subscribeToMenuBarNotifications()
     }
@@ -335,6 +337,16 @@ final class AppCoordinator {
     func hotkeySettingsChanged() {
         guard servicesStarted else { return }
         startHotkeyPump()
+    }
+
+    /// Raccourci global ⌃⌥L (§4.4) : cycle eu → fr → auto, y compris pendant
+    /// l'écoute. `setLanguage` fait le reste — persistance, langue de repli,
+    /// flash icône menu bar hors session.
+    private func startLanguageCycleHotkey() {
+        languageCycleHotkey.start { [weak self] in
+            guard let self else { return }
+            self.setLanguage(self.hud.language.next)
+        }
     }
 
     private func handleHotkey(_ event: HotkeyEvent) async {

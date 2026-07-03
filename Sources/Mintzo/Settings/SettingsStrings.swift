@@ -28,6 +28,9 @@ enum SettingsStrings {
     static var shortcutLabel: String {
         pick("Diktaketa-lasterbidea", "Raccourci de dictée", "Dictation shortcut")
     }
+    static var languageShortcutLabel: String {
+        pick("Hizkuntza-lasterbidea", "Raccourci de langue", "Language shortcut")
+    }
     static var fnToggle: String {
         pick("Fn tekla sakatuta diktatu",
              "Dicter en maintenant la touche Fn",
