@@ -47,7 +47,9 @@ public final class HistoryStore: Sendable {
 
     // MARK: - Migrations
 
-    private static var migrator: DatabaseMigrator {
+    /// Interne (pas private) : les tests de migration rejouent `upTo: "v1"`
+    /// pour vérifier qu'une base v1 existante passe en v2 sans perte.
+    static var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1") { db in
             try db.create(table: Transcription.databaseTableName) { t in
@@ -68,6 +70,13 @@ public final class HistoryStore: Sendable {
                 t.tokenizer = .unicode61(diacritics: .remove)
                 t.column("texteBrut")
                 t.column("texteCorrige")
+            }
+        }
+        // v2 — réécoute/relance : chaque entrée peut référencer son WAV
+        // conservé. Nullable : les entrées v1 n'ont pas d'audio.
+        migrator.registerMigration("v2") { db in
+            try db.alter(table: Transcription.databaseTableName) { t in
+                t.add(column: "audioPath", .text)
             }
         }
         return migrator
@@ -95,17 +104,50 @@ public final class HistoryStore: Sendable {
         }
     }
 
-    /// Supprime la transcription d'identifiant donné.
-    public func delete(id: Int64) throws {
-        _ = try dbQueue.write { db in
-            try Transcription.deleteOne(db, key: id)
+    /// Relance (§ réécoute) : remplace EN PLACE les textes et la langue d'une
+    /// entrée — date, durée, source et audioPath sont conservés.
+    public func update(
+        id: Int64,
+        texteBrut: String,
+        texteCorrige: String?,
+        langue: Transcription.Langue
+    ) throws {
+        try dbQueue.write { db in
+            try db.execute(
+                sql: "UPDATE transcription SET texteBrut = ?, texteCorrige = ?, langue = ? WHERE id = ?",
+                arguments: [texteBrut, texteCorrige, langue.rawValue, id]
+            )
         }
     }
 
-    /// Vide entièrement l'historique.
+    /// Supprime la transcription d'identifiant donné — et son fichier audio
+    /// conservé s'il existe (best effort : un fichier déjà absent ne fait pas
+    /// échouer la suppression de l'entrée).
+    public func delete(id: Int64) throws {
+        let audioPath = try dbQueue.write { db -> String? in
+            let path = try String.fetchOne(
+                db,
+                sql: "SELECT audioPath FROM transcription WHERE id = ?",
+                arguments: [id]
+            )
+            try Transcription.deleteOne(db, key: id)
+            return path
+        }
+        TranscriptionAudioStore.remove(atPath: audioPath)
+    }
+
+    /// Vide entièrement l'historique — fichiers audio conservés compris.
     public func deleteAll() throws {
-        _ = try dbQueue.write { db in
+        let audioPaths = try dbQueue.write { db -> [String] in
+            let paths = try String.fetchAll(
+                db,
+                sql: "SELECT audioPath FROM transcription WHERE audioPath IS NOT NULL"
+            )
             try Transcription.deleteAll(db)
+            return paths
+        }
+        for path in audioPaths {
+            TranscriptionAudioStore.remove(atPath: path)
         }
     }
 

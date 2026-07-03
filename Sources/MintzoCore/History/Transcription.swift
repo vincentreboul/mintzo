@@ -35,6 +35,9 @@ public struct Transcription: Identifiable, Hashable, Sendable, Codable {
     public var source: Source
     /// Nom du fichier d'origine (source == .fichier uniquement).
     public var nomFichier: String?
+    /// Chemin du WAV conservé (16 kHz mono) pour la réécoute et la relance —
+    /// nil : entrée antérieure à la v2, ou écriture audio échouée (non bloquant).
+    public var audioPath: String?
 
     /// Texte présenté à l'utilisateur : corrigé si disponible, sinon brut.
     public var texteAffiche: String { texteCorrige ?? texteBrut }
@@ -47,7 +50,8 @@ public struct Transcription: Identifiable, Hashable, Sendable, Codable {
         dureeAudio: TimeInterval,
         langue: Langue,
         source: Source,
-        nomFichier: String? = nil
+        nomFichier: String? = nil,
+        audioPath: String? = nil
     ) {
         self.id = id
         self.texteBrut = texteBrut
@@ -57,6 +61,7 @@ public struct Transcription: Identifiable, Hashable, Sendable, Codable {
         self.langue = langue
         self.source = source
         self.nomFichier = nomFichier
+        self.audioPath = audioPath
     }
 }
 
