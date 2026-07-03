@@ -46,6 +46,11 @@ final class AppCoordinator {
     /// dans Orokorra, appliquée au lancement par l'AppDelegate.
     let presence = AppPresenceService()
 
+    /// Apparence (système / clair / sombre) — réglable à chaud dans Orokorra,
+    /// appliquée au lancement dans `init` (avant la création de toute fenêtre :
+    /// la capsule HUD, les Réglages et la fenêtre principale suivent).
+    let appearance = AppearanceService()
+
     // MARK: Actions fenêtres (injectées par la scène au premier rendu)
 
     @ObservationIgnored private var openMainWindowAction: () -> Void = {}
@@ -103,8 +108,13 @@ final class AppCoordinator {
     // MARK: - Init
 
     init() {
+        // Apparence persistée (système / clair / sombre) : appliquée avant la
+        // création de toute fenêtre — le HUD naît dans la bonne apparence.
+        appearance.applyCurrentMode()
+
         #if DEBUG
-        // QA : force l'apparence de l'app (audit light/dark sans toucher au système).
+        // QA : force l'apparence de l'app (audit light/dark sans toucher au
+        // système). Prime sur le réglage persisté — posée APRÈS lui.
         if let forced = ProcessInfo.processInfo.environment["MINTZO_APPEARANCE"] {
             NSApplication.shared.appearance = NSAppearance(
                 named: forced == "dark" ? .darkAqua : .aqua
