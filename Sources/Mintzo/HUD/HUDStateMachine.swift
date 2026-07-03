@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import MintzoCore
 
 // Machine d'états du HUD de dictée — logique PURE (Foundation seulement, pas de SwiftUI).
 // Source de vérité : docs/design/design-language.md §4.
@@ -91,6 +92,20 @@ enum HUDLanguage: String, CaseIterable, Sendable {
         case .fr: "fr"
         case .auto: "a\u{2192}"
         }
+    }
+
+    /// Langue moteur correspondante — `nil` pour auto (résolue par détection).
+    var dictationLanguage: Language? {
+        switch self {
+        case .eu: .basque
+        case .fr: .french
+        case .auto: nil
+        }
+    }
+
+    /// Badge affichant une langue moteur (ex. langue détectée en mode auto).
+    init(_ language: Language) {
+        self = language == .french ? .fr : .eu
     }
 }
 

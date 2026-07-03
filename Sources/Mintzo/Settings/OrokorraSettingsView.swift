@@ -25,6 +25,7 @@ struct OrokorraSettingsView: View {
                 Picker(SettingsStrings.languageLabel, selection: $coordinator.language) {
                     Text("euskara").tag(HUDLanguage.eu)
                     Text("français").tag(HUDLanguage.fr)
+                    Text(MzStrings.languageAuto).tag(HUDLanguage.auto)
                 }
                 .pickerStyle(.segmented)
 

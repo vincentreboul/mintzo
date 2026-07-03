@@ -481,14 +481,16 @@ final class AppCoordinator {
     // MARK: - Langue (§4.4, §5.2)
 
     func setLanguage(_ newLanguage: HUDLanguage) {
-        // Auto masqué V1 : l'auto-détection attend l'exposition de whisper_full_lang_id.
-        let effective = newLanguage == .auto ? .eu : newLanguage
-        guard effective != hud.language else { return }
-        hud.setLanguage(effective)
-        AppSettings.language = effective
+        guard newLanguage != hud.language else { return }
+        hud.setLanguage(newLanguage)
+        AppSettings.language = newLanguage
+        // Une langue EXPLICITE (eu/fr) devient la langue de repli du mode auto.
+        if let explicit = newLanguage.dictationLanguage {
+            AppSettings.fallbackLanguage = explicit
+        }
         // Feedback icône menu bar uniquement hors session (§4.4, §5.2).
         guard !hud.state.isVisible else { return }
-        languageFlash = effective
+        languageFlash = newLanguage
         flashTask?.cancel()
         flashTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(MenuBarGlyph.languageFlashDuration))
@@ -497,18 +499,18 @@ final class AppCoordinator {
         }
     }
 
-    /// Le badge du HUD (fichier vague 2) cycle encore eu → fr → auto : on coerce
-    /// auto → eu ici, et on persiste chaque bascule.
+    /// Persiste chaque bascule du badge HUD (cycle eu → fr → auto, §4.4) —
+    /// même source de vérité que le popover et les réglages : `hud.language`.
     private func observeLanguageChanges() {
         withObservationTracking {
             _ = hud.language
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if self.hud.language == .auto {
-                    self.hud.setLanguage(.eu)
-                }
                 AppSettings.language = self.hud.language
+                if let explicit = self.hud.language.dictationLanguage {
+                    AppSettings.fallbackLanguage = explicit
+                }
                 self.observeLanguageChanges()
             }
         }
