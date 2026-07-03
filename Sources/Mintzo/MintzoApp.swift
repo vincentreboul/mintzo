@@ -23,6 +23,10 @@ struct MintzoApp: App {
         Settings {
             SettingsRootView(coordinator: coordinator)
         }
+
+        // Première ouverture : la scène se présente elle-même au lancement
+        // tant que l'onboarding n'a pas été terminé (porte OnboardingGate).
+        OnboardingScene(coordinator: coordinator)
     }
 }
 

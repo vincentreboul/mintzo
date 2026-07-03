@@ -1,0 +1,200 @@
+import SwiftUI
+import Observation
+import MintzoCore
+
+/// État observable de la fenêtre d'onboarding : navigation (`OnboardingJourney`),
+/// permissions LIVE (flux de polling de `PermissionsService`), téléchargement du
+/// modèle (le `ModelLibraryController` PARTAGÉ du coordinator — un download lancé
+/// ici survit à la fermeture de la fenêtre et reste visible dans Réglages >
+/// Ereduak), et dictée d'essai (déclenchée par le chemin public du popover,
+/// notification `.mintzoDictateToggleRequested`).
+@MainActor
+@Observable
+final class OnboardingController {
+
+    // MARK: Navigation
+
+    private(set) var journey = OnboardingJourney()
+
+    // MARK: Permissions (écran 2)
+
+    private(set) var permissions: PermissionsSnapshot
+
+    // MARK: Modèle (écran 3)
+
+    /// Langue de dictée par défaut — présélection : eu si le système est en eu,
+    /// fr si le système est en fr, sinon eu (Mintzo est d'abord basque).
+    var selectedLanguage: HUDLanguage {
+        didSet {
+            guard selectedLanguage != oldValue else { return }
+            coordinator.language = selectedLanguage
+        }
+    }
+
+    /// Texte de la zone d'essai — possédé ici (et pas en @State) pour que le
+    /// harnais de snapshots QA puisse peupler la zone.
+    var trialText = ""
+
+    @ObservationIgnored private let coordinator: AppCoordinator
+    @ObservationIgnored private var permissionsTask: Task<Void, Never>?
+
+    #if DEBUG
+    /// Surcharges du harnais de snapshots QA (états permissions/download figés).
+    @ObservationIgnored var qaModelRowOverride: ModelRowState?
+    @ObservationIgnored var qaTrialPhaseOverride: OnboardingTrial.Phase?
+    #endif
+
+    init(coordinator: AppCoordinator) {
+        self.coordinator = coordinator
+        self.permissions = coordinator.permissions.snapshot()
+        self.selectedLanguage = MzStrings.ui == .fr ? .fr : .eu
+        coordinator.language = selectedLanguage
+    }
+
+    // MARK: - Cycle de vie
+
+    /// Démarre le suivi LIVE des permissions (polling 2 s existant, ralenti ×5
+    /// quand tout est accordé). À appeler à l'apparition de la fenêtre.
+    func start() {
+        guard permissionsTask == nil else { return }
+        let service = coordinator.permissions
+        permissionsTask = Task { [weak self] in
+            for await snapshot in service.changes() {
+                guard let self, !Task.isCancelled else { return }
+                self.permissions = snapshot
+            }
+        }
+    }
+
+    /// Arrête le polling (fermeture de la fenêtre).
+    func stop() {
+        permissionsTask?.cancel()
+        permissionsTask = nil
+    }
+
+    // MARK: - Navigation
+    // Mutations pures — l'animation (morph, ou crossfade si Reduce Motion) est
+    // choisie par la vue, seule à connaître l'environnement d'accessibilité.
+
+    func advance() {
+        journey.advance()
+    }
+
+    func goBack() {
+        journey.goBack()
+    }
+
+    /// « Amaitu » : marque l'onboarding terminé — la fenêtre ne se représentera
+    /// plus au lancement. La fermeture est du ressort de la vue (dismiss).
+    func finish() {
+        OnboardingGate.markCompleted()
+    }
+
+    // MARK: - Permissions (écran 2)
+
+    /// Prompt système micro (si jamais demandée) ; le flux `changes()` reflète
+    /// le résultat.
+    func requestMicrophone() {
+        Task { _ = await coordinator.permissions.requestMicrophoneAccess() }
+    }
+
+    func openMicrophoneSettings() {
+        coordinator.permissions.openMicrophoneSettings()
+    }
+
+    /// Accessibilité : enregistre l'app dans la liste TCC (prompt système) ET
+    /// ouvre le panneau Réglages — un seul clic mène au bon endroit, l'octroi
+    /// effectif est détecté par le polling.
+    func requestAccessibility() {
+        coordinator.permissions.requestAccessibilityAccess()
+        coordinator.permissions.openAccessibilitySettings()
+    }
+
+    // MARK: - Modèle (écran 3)
+
+    /// État d'affichage de la rangée modèle — découplé de `ModelLibraryController`
+    /// pour rester rendable avec des états figés (QA).
+    struct ModelRowState: Equatable {
+        var model: WhisperModel
+        var isInstalled = false
+        var downloadFraction: Double?
+        var downloadedBytes: Int64?
+        var errorMessage: String?
+    }
+
+    var selectedModel: WhisperModel {
+        selectedLanguage == .fr ? ModelCatalog.whisperFR : ModelCatalog.whisperEU
+    }
+
+    var modelRow: ModelRowState {
+        #if DEBUG
+        if let qaModelRowOverride { return qaModelRowOverride }
+        #endif
+        let model = selectedModel
+        guard let entry = coordinator.modelLibrary.entries.first(where: { $0.id == model.id }) else {
+            return ModelRowState(model: model)
+        }
+        return ModelRowState(
+            model: model,
+            isInstalled: entry.isInstalled,
+            downloadFraction: entry.downloadFraction,
+            downloadedBytes: entry.downloadFraction.map {
+                Int64(Double(model.sizeBytes) * $0)
+            },
+            errorMessage: entry.errorMessage
+        )
+    }
+
+    func downloadSelectedModel() {
+        coordinator.modelLibrary.download(selectedModel)
+    }
+
+    /// Re-sonde le disque (ouverture de l'écran 3).
+    func refreshModels() async {
+        await coordinator.modelLibrary.refresh()
+    }
+
+    // MARK: - Dictée d'essai (écran 3)
+
+    var trialAvailability: OnboardingTrial.Availability {
+        OnboardingTrial.availability(
+            microphone: permissions.microphone,
+            modelInstalled: modelRow.isInstalled
+        )
+    }
+
+    var trialPhase: OnboardingTrial.Phase {
+        #if DEBUG
+        if let qaTrialPhaseOverride { return qaTrialPhaseOverride }
+        #endif
+        return OnboardingTrial.phase(for: coordinator.hud.state)
+    }
+
+    /// Une vraie dictée, par le chemin public du popover : le coordinator gère
+    /// le prompt micro au vol, le HUD, l'insertion (champ local focus = cible ;
+    /// sans Accessibilité le texte reste sur le clipboard, le HUD le dit).
+    func toggleTrialDictation() {
+        NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
+    }
+
+    // MARK: - Harnais QA (snapshots)
+
+    #if DEBUG
+    /// Fige un état complet pour un rendu `ImageRenderer` (OnboardingSnapshots).
+    func qaConfigure(
+        screen: OnboardingScreen,
+        microphone: PermissionStatus,
+        accessibility: PermissionStatus,
+        modelRow: ModelRowState? = nil,
+        trialPhase: OnboardingTrial.Phase? = nil,
+        trialText: String = ""
+    ) {
+        journey = OnboardingJourney()
+        while journey.screen != screen { journey.advance() }
+        permissions = PermissionsSnapshot(microphone: microphone, accessibility: accessibility)
+        qaModelRowOverride = modelRow
+        qaTrialPhaseOverride = trialPhase
+        self.trialText = trialText
+    }
+    #endif
+}
