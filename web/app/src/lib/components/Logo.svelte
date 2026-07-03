@@ -2,9 +2,8 @@
 	let { compact = false }: { compact?: boolean } = $props();
 </script>
 
-<!-- BRAND-MARK: remplacé par assets/brand/lauburu.svg à livraison.
-     Le span.mark ci-dessous est l'emplacement réservé du lauburu typographique
-     (4 virgules en rotation) en cours de création — pour l'instant, wordmark seul. -->
+<!-- Marque : lauburu typographique (4 virgules en rotation) — static/brand/lauburu.svg,
+     inliné ici en <img> masqué aux lecteurs d'écran, teinté par currentColor via mask. -->
 <span class="logo" class:compact>
 	<span class="mark" aria-hidden="true"></span>
 	<span class="word">Mintzo</span>
@@ -14,7 +13,7 @@
 	.logo {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.55rem;
 		font-family: var(--font-display);
 		font-optical-sizing: auto;
 		font-weight: 640;
@@ -28,7 +27,11 @@
 		font-size: 1.1875rem;
 	}
 
-	.mark:empty {
-		display: none;
+	.mark {
+		width: 1.5em;
+		height: 1.5em;
+		background-color: var(--gorri);
+		mask: url('/brand/lauburu.svg') no-repeat center / contain;
+		-webkit-mask: url('/brand/lauburu.svg') no-repeat center / contain;
 	}
 </style>
