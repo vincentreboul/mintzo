@@ -40,3 +40,7 @@ MERGE_GATE.md
 
 # Session tooling
 .claude/
+
+# Confidentiel — jamais dans le repo public
+docs/HANDOFF.md
+HANDOFF*.md
