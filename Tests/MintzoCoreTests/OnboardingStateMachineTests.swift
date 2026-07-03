@@ -114,7 +114,9 @@ final class OnboardingStateMachineTests: XCTestCase {
 
     func testTrialPhaseMapsHUDStates() {
         XCTAssertEqual(OnboardingTrial.phase(for: .idle), .idle)
-        XCTAssertEqual(OnboardingTrial.phase(for: .success), .idle)
+        // HUDState.success porte un message optionnel depuis le HUD v2 —
+        // la phase l'ignore (seul le cas compte).
+        XCTAssertEqual(OnboardingTrial.phase(for: .success(message: nil)), .idle)
         XCTAssertEqual(OnboardingTrial.phase(for: .error(message: "Eredua falta da.")), .idle)
         XCTAssertEqual(OnboardingTrial.phase(for: .listening), .listening)
         XCTAssertEqual(OnboardingTrial.phase(for: .transcribing), .processing)
