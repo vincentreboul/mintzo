@@ -2,6 +2,8 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import {
 		GITHUB_URL,
+		MAC_DOWNLOAD_URL,
+		MAC_DOWNLOAD_VERSION,
 		COMMON_VOICE_URL,
 		HITZ_URL,
 		XEZPELETA_URL,
@@ -163,27 +165,52 @@
 	</div>
 </section>
 
-<!-- ============ Mac aplikazioa ============ -->
-<section class="mac" id="mac">
+<!-- ============ Instalatu ============ -->
+<section class="install" id="mac">
 	<div class="shell">
-		<h2 class="section-head"><span class="kicker">{t('home.macHead')}</span></h2>
-		<div class="mac-body">
-			<div class="mac-text">
-				<p class="display mac-status">{t('home.macStatus')}</p>
-				<p class="mac-req">{t('home.macBody')}</p>
-				<!-- TODO-URL -->
-				<a class="btn btn-quiet mac-cta" href={GITHUB_URL} rel="noopener">
-					{t('home.macGithub')}<span aria-hidden="true"> ↗</span>
+		<h2 class="section-head"><span class="kicker">{t('home.installHead')}</span></h2>
+		<div class="install-grid">
+			<article class="panel install-card">
+				<p class="kicker accent">{t('home.installMacKicker')}</p>
+				<h3 class="display install-name">{t('home.installMacTitle')}</h3>
+				<p class="install-req">{t('home.installMacReq')}</p>
+				<a class="btn btn-primary install-dl" href={MAC_DOWNLOAD_URL} rel="noopener">
+					<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M12 3.5v11" />
+						<path d="M7 10l5 4.5L17 10" />
+						<path d="M4.5 19.5h15" />
+					</svg>
+					{t('home.installMacCta')}
 				</a>
-			</div>
-			<div class="build-card">
-				<p class="kicker">{t('home.macBuildLabel')}</p>
-				<pre><code>brew install xcodegen
-scripts/fetch-whisper-xcframework.sh
-scripts/fetch-llama-xcframework.sh
-xcodegen generate</code></pre>
-				<p class="build-hint">{t('home.macBuildHint')}</p>
-			</div>
+				<p class="install-note">
+					{t('home.installMacMeta', { version: MAC_DOWNLOAD_VERSION })}
+				</p>
+				<ol class="install-steps">
+					<li>{t('home.installMac1')}</li>
+					<li>{t('home.installMac2')}</li>
+					<li>{t('home.installMac3')}</li>
+				</ol>
+				<a class="btn-text install-alt" href={GITHUB_URL} rel="noopener">
+					{t('home.installMacAlt')}<span aria-hidden="true"> ↗</span>
+				</a>
+			</article>
+			<article class="panel install-card">
+				<p class="kicker accent">{t('home.installPwaKicker')}</p>
+				<h3 class="display install-name">{t('home.installPwaTitle')}</h3>
+				<p class="install-req">{t('home.installPwaIntro')}</p>
+				<ol class="install-steps">
+					<li>
+						{t('home.installPwa1Pre')}
+						<a href="/tresna">{t('home.installPwa1Link')}</a>{t('home.installPwa1Post')}
+					</li>
+					<li>{t('home.installPwa2')}</li>
+					<li>{t('home.installPwa3')}</li>
+				</ol>
+				<div class="install-icon">
+					<img src="/icons/icon-192.png" alt={t('home.installPwaIconAlt')} width="192" height="192" loading="lazy" />
+					<span class="install-icon-caption">{t('home.installPwaIconCaption')}</span>
+				</div>
+			</article>
 		</div>
 	</div>
 </section>
@@ -563,7 +590,7 @@ xcodegen generate</code></pre>
 
 	/* ---------- nola dabilen ---------- */
 	.how,
-	.mac,
+	.install,
 	.credits {
 		padding-block: clamp(3rem, 7vw, 5rem) 0;
 	}
@@ -600,57 +627,108 @@ xcodegen generate</code></pre>
 		max-width: 34ch;
 	}
 
-	/* ---------- mac ---------- */
-	.mac-body {
+	/* ---------- instalatu ---------- */
+	.install-grid {
 		display: grid;
-		grid-template-columns: 1.1fr 0.9fr;
-		gap: clamp(2rem, 5vw, 4rem);
+		grid-template-columns: 1fr 1fr;
+		gap: clamp(1.25rem, 3vw, 2rem);
 		margin-top: 2.25rem;
-		align-items: start;
+		align-items: stretch;
 	}
 
-	.mac-status {
+	.install-card {
+		display: grid;
+		justify-items: start;
+		align-content: start;
+		padding: clamp(1.75rem, 4vw, 2.5rem);
+	}
+
+	.install-name {
 		font-size: clamp(1.375rem, 2.4vw, 1.75rem);
-		max-width: 24ch;
+		margin-top: 0.875rem;
+		max-width: 20ch;
 	}
 
-	.mac-req {
+	.install-req {
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 		line-height: 1.6;
-		margin-top: 1rem;
+		margin-top: 0.75rem;
 		max-width: 44ch;
 	}
 
-	.mac-cta {
+	.install-dl {
+		margin-top: 1.5rem;
+	}
+
+	.install-note {
+		margin-top: 0.875rem;
+		font-size: 0.8125rem;
+		color: var(--ink-3);
+	}
+
+	.install-steps {
+		list-style: none;
+		counter-reset: step;
+		display: grid;
+		gap: 1rem;
+		margin: 1.75rem 0 0;
+		padding: 1.75rem 0 0;
+		border-top: 1px solid var(--hairline);
+		justify-self: stretch;
+	}
+
+	.install-steps li {
+		counter-increment: step;
+		position: relative;
+		padding-left: 2.375rem;
+		font-size: 0.9375rem;
+		line-height: 1.6;
+		color: var(--ink-2);
+		max-width: 44ch;
+	}
+
+	.install-steps li::before {
+		content: counter(step, decimal-leading-zero);
+		position: absolute;
+		left: 0;
+		top: 0.1em;
+		font-family: var(--font-display);
+		font-optical-sizing: auto;
+		font-weight: 560;
+		font-size: 0.9375rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--gorri);
+	}
+
+	.install-steps a {
+		color: inherit;
+	}
+
+	.install-alt {
 		margin-top: 1.75rem;
 	}
 
-	.build-card {
-		background: var(--surface);
+	.install-icon {
+		display: flex;
+		align-items: center;
+		gap: 0.875rem;
+		margin-top: 1.75rem;
+	}
+
+	.install-icon img {
+		width: 3rem;
+		height: 3rem;
+		border-radius: 0.75rem;
 		border: 1px solid var(--hairline);
-		border-radius: 1rem;
 		box-shadow: var(--shadow-card);
-		padding: 1.5rem;
 	}
 
-	.build-card .kicker {
-		color: var(--ink-2);
-	}
-
-	.build-card pre {
-		margin: 1rem 0 0;
-		overflow-x: auto;
-		font-family: var(--font-mono);
+	.install-icon-caption {
 		font-size: 0.8125rem;
-		line-height: 1.8;
-		color: var(--ink);
-	}
-
-	.build-hint {
-		margin-top: 1rem;
-		font-size: 0.8125rem;
+		line-height: 1.5;
 		color: var(--ink-3);
+		max-width: 26ch;
 	}
 
 	/* ---------- crédits ---------- */
@@ -718,7 +796,7 @@ xcodegen generate</code></pre>
 			gap: 1.75rem;
 		}
 
-		.mac-body {
+		.install-grid {
 			grid-template-columns: 1fr;
 		}
 
