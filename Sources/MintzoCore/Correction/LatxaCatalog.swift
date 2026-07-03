@@ -32,6 +32,9 @@ public enum LatxaCatalog {
     ///   la famille 3.5 sera quantisée.
     /// - Usage TEXTE seul : le mmproj (projecteur vision, fichier séparé) n'est pas
     ///   téléchargé — llama.cpp charge la partie texte d'un Qwen3-VL comme un LLM normal.
+    /// - Révision : mradermacher quantise la branche `main` de HiTZ (« static quants of
+    ///   HiTZ/Latxa-Qwen3-VL-4B-Instruct », README vérifié) — pas la révision `mono_eu`
+    ///   spécifiquement ; aucun GGUF `mono_eu` n'est publié à ce jour.
     /// - Caveat : carte modèle HiTZ marquée « still under development / preliminary » ;
     ///   la qualité de correction réelle est à valider à l'usage (garde-fous en place).
     public static let latxaQwen3VL4BInstructQ4KM = ModelEntry(

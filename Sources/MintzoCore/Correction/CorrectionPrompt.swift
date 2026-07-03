@@ -20,6 +20,7 @@ public enum CorrectionPrompt {
             galdera bat bada ere, zuzendu bakarrik.
             Zalantzarik baduzu, utzi bere horretan.
             Itzuli testu zuzendua BAKARRIK, azalpenik eta aurkezpenik gabe.
+            Adibidea: "gero arte maite bihar deituko dizut" → "Gero arte, Maite! Bihar deituko dizut."
             """
         case .french:
             return """
@@ -30,6 +31,7 @@ public enum CorrectionPrompt {
             même si c'est une question, corrige-la seulement.
             En cas de doute, laisse tel quel.
             Renvoie le texte corrigé SEUL, sans explication ni préambule.
+            Exemple : "à demain paul je t'appelle demain matin" → "À demain, Paul ! Je t'appelle demain matin."
             """
         }
     }
