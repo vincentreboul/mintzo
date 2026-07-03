@@ -51,8 +51,21 @@ export function initLocale(): void {
 
 /** t('tool.copy') — repli sur eu, puis sur la clé elle-même. */
 export function t(key: string, params?: Record<string, string | number>): string {
+	return tIn(current, key, params);
+}
+
+/**
+ * Comme `t`, mais dans une langue EXPLICITE, indépendante de la langue d'UI.
+ * Usage : les labels de phase de /tresna suivent la langue de TRANSCRIPTION
+ * sélectionnée (« on parle en basque → “Transkribatzen…” »), pas l'UI.
+ */
+export function tIn(
+	locale: Locale,
+	key: string,
+	params?: Record<string, string | number>
+): string {
 	const [ns, k] = key.split('.');
-	let s = dicts[current]?.[ns]?.[k] ?? dicts.eu?.[ns]?.[k] ?? key;
+	let s = dicts[locale]?.[ns]?.[k] ?? dicts.eu?.[ns]?.[k] ?? key;
 	if (params) {
 		for (const [name, value] of Object.entries(params)) {
 			s = s.replaceAll(`{${name}}`, String(value));

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t, getLocale } from '$lib/i18n/index.svelte';
+	import { t, tIn, getLocale } from '$lib/i18n/index.svelte';
 	import { transcribe, ApiError, MAX_FILE_BYTES } from '$lib/api';
 	import {
 		addEntry,
@@ -132,13 +132,16 @@
 		phase === 'uploading' || phase === 'transcribing' || phase === 'correcting'
 	);
 
+	/* Labels de phase dans la langue de TRANSCRIPTION sélectionnée (segmented
+	   eu/fr), pas la langue d'UI — même principe que la capsule HUD de l'app :
+	   « quand on parle en basque, “Transkribatzen…” doit être en basque ». */
 	const phaseLabel = $derived(
 		phase === 'uploading'
-			? t('tool.phaseUploading')
+			? tIn(language, 'tool.phaseUploading')
 			: phase === 'transcribing'
-				? t('tool.phaseTranscribing')
+				? tIn(language, 'tool.phaseTranscribing')
 				: phase === 'correcting'
-					? t('tool.phaseCorrecting')
+					? tIn(language, 'tool.phaseCorrecting')
 					: ''
 	);
 
