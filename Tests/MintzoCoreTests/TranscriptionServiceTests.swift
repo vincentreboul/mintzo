@@ -76,6 +76,26 @@ final class TranscriptionServiceTests: XCTestCase {
         XCTAssertEqual(result.audioDuration, 5.81, accuracy: 0.3)
     }
 
+    /// Service câblé avec un dictionnaire non vide : l'amorce whisper est
+    /// construite et transmise (initial_prompt réel sur tiny) — transcription
+    /// aboutie, non vide, sans erreur.
+    @MainActor
+    func testTranscribesWithVocabularyWords() async throws {
+        let vocabDir = tempDirectory.appendingPathComponent("vocab", isDirectory: true)
+        try FileManager.default.createDirectory(at: vocabDir, withIntermediateDirectories: true)
+        let store = VocabularyStore(fileURL: vocabDir.appendingPathComponent("vocabulary.json"))
+        store.addWord("Bitwip")
+        store.addWord("Maite")
+        store.addWord("Donostia")
+        let vocabService = TranscriptionService(modelManager: manager, vocabulary: store)
+
+        let samples = try AudioFileDecoder.decode(url: fixtureURL("bonjour-16k", "wav"))
+        let result = try await vocabService.transcribe(samples: samples, language: "fr")
+
+        print("TRANSCRIPTION [wav/fr + vocabulaire] → « \(result.text) »")
+        XCTAssertFalse(result.text.isEmpty, "Texte vide avec amorce de dictionnaire")
+    }
+
     /// Langue « eu » sans whisper-eu installé → repli sur modèle présent, pas d'erreur.
     func testBasqueFallsBackToInstalledModel() async throws {
         let samples = try AudioFileDecoder.decode(url: fixtureURL("bonjour-16k", "wav"))

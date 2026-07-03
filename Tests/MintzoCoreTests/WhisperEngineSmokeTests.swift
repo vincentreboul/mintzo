@@ -38,6 +38,34 @@ final class WhisperEngineSmokeTests: XCTestCase {
         XCTAssertFalse(text.isEmpty, "La transcription ne doit pas être vide")
     }
 
+    /// Test réel opt-in (modèle tiny présent) : un `initial_prompt` de
+    /// dictionnaire est accepté par whisper_full — pas de crash, pas d'erreur,
+    /// transcription non vide. Vérifie aussi la durée de vie de la chaîne C
+    /// (withCString imbriqués) sur un vrai appel.
+    func testInitialPromptIsAcceptedWithoutCrash() async throws {
+        guard FileManager.default.fileExists(atPath: Self.modelURL.path) else {
+            throw XCTSkip(
+                "Modèle absent (\(Self.modelURL.path)) — lancer scripts/download-test-model.sh"
+            )
+        }
+        let bundle = Bundle(for: Self.self)
+        let wavURL = try XCTUnwrap(
+            bundle.url(forResource: "bonjour-16k", withExtension: "wav"),
+            "Fixture bonjour-16k.wav absente du bundle de test"
+        )
+        let samples = try Self.loadSamples(from: wavURL)
+
+        let engine = try WhisperEngine(modelPath: Self.modelURL)
+        let text = try await engine.transcribe(
+            samples: samples,
+            language: "fr",
+            initialPrompt: "Bitwip, Maite, Donostia."
+        )
+
+        print("SMOKE-TEST TRANSCRIPTION [fr + initial_prompt] → « \(text) »")
+        XCTAssertFalse(text.isEmpty, "La transcription avec amorce ne doit pas être vide")
+    }
+
     /// Charge un WAV mono 16 kHz en PCM float32 normalisé.
     private static func loadSamples(from url: URL) throws -> [Float] {
         let file = try AVAudioFile(forReading: url)

@@ -32,6 +32,9 @@ final class FileTranscriptionQueue: QueueDisplaying {
 
     /// Correcteur du moment (`nil` = passe désactivée) — lu au moment du fichier.
     @ObservationIgnored var makeCorrector: @MainActor () -> (any DictationCorrecting)? = { nil }
+    /// Remplacements du dictionnaire — post-pass déterministe après correction,
+    /// même contrat que la dictée (`DictationFlow.vocabularyReplacements`).
+    @ObservationIgnored var vocabularyReplacements: @MainActor () -> [VocabularyReplacement] = { [] }
     /// Échec d'un fichier : (nom, message) — le coordinator badge le menu bar.
     @ObservationIgnored var onFailure: @MainActor (String, String) -> Void = { _, _ in }
 
@@ -125,6 +128,8 @@ final class FileTranscriptionQueue: QueueDisplaying {
                 raw, language: effective, corrector: corrector, timeout: correctionTimeout
             )
         }
+        // Dictionnaire : mêmes remplacements déterministes que la dictée.
+        finalText = VocabularyPostPass.apply(finalText, replacements: vocabularyReplacements())
         finalText = DictationFlow.postProcess(finalText)
 
         let record = Transcription(

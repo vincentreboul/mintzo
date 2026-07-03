@@ -168,6 +168,10 @@ final class DictationFlow {
 
     /// Correcteur du moment, `nil` = correction désactivée.
     var makeCorrector: @MainActor () -> (any DictationCorrecting)? = { nil }
+    /// Remplacements « entendu → voulu » du dictionnaire personnalisé — lus au
+    /// moment de la session, appliqués en post-pass déterministe APRÈS la
+    /// correction (voir `VocabularyPostPass`), avant le post-processing.
+    var vocabularyReplacements: @MainActor () -> [VocabularyReplacement] = { [] }
     /// `true` = insertion au curseur ; `false` = clipboard seul (réglage).
     var autoInsertEnabled: @MainActor () -> Bool = { true }
     /// Écriture clipboard du mode « clipboard seul » (NSPasteboard en prod, spy en test).
@@ -447,6 +451,9 @@ final class DictationFlow {
                 raw, language: language, corrector: corrector, timeout: correctionTimeout
             )
         }
+        // Dictionnaire : remplacements déterministes après la correction —
+        // s'appliquent aussi quand la correction est désactivée ou a replié.
+        finalText = VocabularyPostPass.apply(finalText, replacements: vocabularyReplacements())
         finalText = Self.postProcess(finalText)
         // Dernier point de contrôle AVANT l'insertion : une session annulée
         // n'insère JAMAIS de texte (et n'historise rien).

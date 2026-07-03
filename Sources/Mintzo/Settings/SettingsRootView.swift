@@ -4,11 +4,11 @@ import SwiftUI
 /// (ex. clic sur l'erreur HUD « eredua falta da » → Ereduak, là où vit
 /// le bouton Deskargatu).
 enum SettingsTab: Hashable {
-    case orokorra, ereduak, zuzenketa
+    case orokorra, ereduak, hiztegia, zuzenketa
 }
 
-/// Fenêtre Réglages — 3 onglets natifs (Form grouped) : Orokorra / Ereduak /
-/// Zuzenketa. SF Symbols §9.3, microcopy §9, jamais d'emoji.
+/// Fenêtre Réglages — 4 onglets natifs (Form grouped) : Orokorra / Ereduak /
+/// Hiztegia / Zuzenketa. SF Symbols §9.3, microcopy §9, jamais d'emoji.
 /// La sélection est portée par le coordinator (`settingsTab`) : la scène
 /// `Settings` est ouverte via `openSettings()` (macOS 14+), l'onglet via ce binding.
 struct SettingsRootView: View {
@@ -24,6 +24,9 @@ struct SettingsRootView: View {
             EreduakSettingsView(library: coordinator.modelLibrary)
                 .tabItem { Label(SettingsStrings.tabEreduak, systemImage: "internaldrive") }
                 .tag(SettingsTab.ereduak)
+            HiztegiaSettingsView(store: coordinator.vocabularyStore)
+                .tabItem { Label(SettingsStrings.tabHiztegia, systemImage: "character.book.closed") }
+                .tag(SettingsTab.hiztegia)
             ZuzenketaSettingsView(coordinator: coordinator)
                 .tabItem { Label(SettingsStrings.tabZuzenketa, systemImage: "textformat.abc") }
                 .tag(SettingsTab.zuzenketa)

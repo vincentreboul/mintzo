@@ -34,12 +34,12 @@ actor LatxaEngineLoader {
         self.modelURL = modelURL
     }
 
-    func corrector() throws -> LatxaCorrector {
+    func corrector(protectedWords: [String] = []) throws -> LatxaCorrector {
         if engine == nil {
             engine = try LlamaEngine(modelPath: modelURL)
         }
         guard let engine else { throw LlamaError.engineUnloaded }
-        return LatxaCorrector(engine: engine)
+        return LatxaCorrector(engine: engine, protectedWords: protectedWords)
     }
 
     func unload() {
@@ -50,8 +50,11 @@ actor LatxaEngineLoader {
 /// Corrector qui matérialise le moteur Latxa au premier appel.
 struct LazyLatxaCorrector: Corrector {
     let loader: LatxaEngineLoader
+    /// Graphies du dictionnaire personnalisé (snapshot au départ de la passe).
+    var protectedWords: [String] = []
 
     func correct(_ text: String, language: Language) async throws -> String {
-        try await loader.corrector().correct(text, language: language)
+        try await loader.corrector(protectedWords: protectedWords)
+            .correct(text, language: language)
     }
 }

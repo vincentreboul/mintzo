@@ -18,6 +18,7 @@ enum SettingsStrings {
 
     static var tabOrokorra: String { pick("Orokorra", "Général", "General") }
     static var tabEreduak: String { pick("Ereduak", "Modèles", "Models") }
+    static var tabHiztegia: String { pick("Hiztegia", "Dictionnaire", "Dictionary") }
     static var tabZuzenketa: String { pick("Zuzenketa", "Correction", "Correction") }
 
     // MARK: Orokorra
@@ -137,6 +138,47 @@ enum SettingsStrings {
         pick("Ereduak zure Mac-ean gordetzen dira eta konexiorik gabe dabiltza.",
              "Les modèles sont stockés sur votre Mac et fonctionnent sans connexion.",
              "Models are stored on your Mac and work without a connection.")
+    }
+
+    // MARK: Hiztegia
+
+    static var vocabularyWordsSection: String {
+        pick("Hitzak", "Mots", "Words")
+    }
+    static var vocabularyWordsFooter: String {
+        pick("Izen propioak eta errespetatu beharreko grafiak — transkripzioak eta zuzenketak lehenetsiko dituzte.",
+             "Noms propres et graphies à respecter — la transcription et la correction les privilégieront.",
+             "Proper nouns and spellings to respect — transcription and correction will favor them.")
+    }
+    static var vocabularyWordsEmpty: String {
+        pick("Hitzik ez oraindik. Gehitu izen bat behean.",
+             "Aucun mot pour l'instant. Ajoutez un nom ci-dessous.",
+             "No words yet. Add a name below.")
+    }
+    static var vocabularyWordPlaceholder: String {
+        pick("Hitz berria", "Nouveau mot", "New word")
+    }
+    static var vocabularyReplacementsSection: String {
+        pick("Ordezkapenak", "Remplacements", "Replacements")
+    }
+    static var vocabularyReplacementsFooter: String {
+        pick("Beti aplikatzen dira, zuzenketaren ondoren: « entzundakoa » « nahi duzuna » bihurtzen da.",
+             "Toujours appliqués, après la correction : le texte « entendu » devient le texte « voulu ».",
+             "Always applied, after correction: the “heard” text becomes the “wanted” text.")
+    }
+    static var vocabularyReplacementsEmpty: String {
+        pick("Ordezkapenik ez oraindik. Gehitu bikote bat behean.",
+             "Aucun remplacement pour l'instant. Ajoutez une paire ci-dessous.",
+             "No replacements yet. Add a pair below.")
+    }
+    static var vocabularyHeardPlaceholder: String {
+        pick("Entzundakoa", "Entendu", "Heard")
+    }
+    static var vocabularyWantedPlaceholder: String {
+        pick("Nahi dena", "Voulu", "Wanted")
+    }
+    static var vocabularyAdd: String {
+        pick("Gehitu", "Ajouter", "Add")
     }
 
     // MARK: Zuzenketa

@@ -32,13 +32,21 @@ public struct AnthropicCorrector: Corrector {
 
     private let keyProvider: any KeyProviding
     private let session: URLSession
+    private let protectedWords: [String]
 
     /// - Parameters:
     ///   - keyProvider: source de la clé API (Keychain en prod, stub en test).
     ///   - session: injectable pour les tests (URLProtocol mock) — `.shared` par défaut.
-    public init(keyProvider: any KeyProviding, session: URLSession = .shared) {
+    ///   - protectedWords: graphies du dictionnaire personnalisé, injectées
+    ///     dans le prompt système (même section que la correction locale).
+    public init(
+        keyProvider: any KeyProviding,
+        session: URLSession = .shared,
+        protectedWords: [String] = []
+    ) {
         self.keyProvider = keyProvider
         self.session = session
+        self.protectedWords = protectedWords
     }
 
     public func correct(_ text: String, language: Language) async throws -> String {
@@ -60,7 +68,7 @@ public struct AnthropicCorrector: Corrector {
                 model: Self.model,
                 maxTokens: CorrectionPrompt.maxTokens(forInput: text),
                 temperature: 0,
-                system: CorrectionPrompt.system(for: language),
+                system: CorrectionPrompt.system(for: language, protectedWords: protectedWords),
                 messages: [.init(role: "user", content: text)]
             )
         )

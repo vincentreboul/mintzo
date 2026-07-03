@@ -37,6 +37,10 @@ final class AppCoordinator {
     @ObservationIgnored private(set) var flow: DictationFlow!
     @ObservationIgnored private var latxaLoader: LatxaEngineLoader?
 
+    /// Dictionnaire personnalisé (onglet Hiztegia) : mots (graphies) +
+    /// remplacements — injectés dans whisper, la correction et le post-pass.
+    let vocabularyStore: VocabularyStore
+
     /// File d'affichage des transcriptions de fichiers (fenêtre principale §6.3).
     let fileQueue: FileTranscriptionQueue
 
@@ -125,7 +129,10 @@ final class AppCoordinator {
 
         AppSettings.registerDefaults()
         historyStore = Self.makeHistoryStore()
-        transcriptionService = TranscriptionService(modelManager: modelManager)
+        vocabularyStore = VocabularyStore.standard()
+        transcriptionService = TranscriptionService(
+            modelManager: modelManager, vocabulary: vocabularyStore
+        )
         fileQueue = FileTranscriptionQueue(transcriber: transcriptionService, history: historyStore)
         modelLibrary = ModelLibraryController.standard(manager: modelManager)
 
@@ -218,6 +225,9 @@ final class AppCoordinator {
 
     private func wireFlowCallbacks() {
         flow.makeCorrector = { [weak self] in self?.makeCorrector() }
+        flow.vocabularyReplacements = { [weak self] in
+            self?.vocabularyStore.replacements ?? []
+        }
         flow.autoInsertEnabled = { AppSettings.autoInsert }
         flow.writeClipboard = { text in
             let pasteboard = NSPasteboard.general
@@ -417,12 +427,17 @@ final class AppCoordinator {
                 latxaLoader = LatxaEngineLoader(modelURL: url)
             }
             guard let latxaLoader else { return nil }
-            return CorrectionService(corrector: LazyLatxaCorrector(loader: latxaLoader))
+            return CorrectionService(corrector: LazyLatxaCorrector(
+                loader: latxaLoader, protectedWords: vocabularyStore.words
+            ))
         case .cloud:
             // BYOK : clé lue dans le trousseau au moment de la requête. Si elle
             // manque, le correcteur lève → CorrectionService retombe sur le brut.
             return CorrectionService(
-                corrector: AnthropicCorrector(keyProvider: KeychainKeyStore())
+                corrector: AnthropicCorrector(
+                    keyProvider: KeychainKeyStore(),
+                    protectedWords: vocabularyStore.words
+                )
             )
         }
     }
@@ -451,6 +466,9 @@ final class AppCoordinator {
 
     private func wireFileQueueCallbacks() {
         fileQueue.makeCorrector = { [weak self] in self?.makeCorrector() }
+        fileQueue.vocabularyReplacements = { [weak self] in
+            self?.vocabularyStore.replacements ?? []
+        }
         fileQueue.onFailure = { [weak self] fileName, message in
             NSLog("Mintzo: transcription de « %@ » échouée — %@", fileName, message)
             self?.flashFileError()
