@@ -27,9 +27,10 @@ Dictée et transcription vocale de niveau Wispr Flow / SuperWhisper, conçue **e
 ### Onboarding
 Première ouverture : 3 écrans max — (1) micro + accessibilité avec explication honnête, (2) téléchargement du modèle basque (taille annoncée, barre de progression, le modèle FR/multilingue selon ADR), (3) essai de dictée guidé. Correction Latxa = téléchargement optionnel différé (proposé, jamais imposé).
 
-## Non-goals V1
-- Site web (phase 2), Windows/Linux, iOS.
+## Non-goals V1 & roadmap plateformes
+- **V1 = app Mac native uniquement.** Puis : **Phase 2 = site web** (upload + transcription en ligne — sert aussi les utilisateurs Windows) ; **Phase 3 = app Windows native** (exigence Vincent 2026-07-03 12:31) réutilisant le cœur portable (whisper.cpp/llama.cpp + mêmes modèles GGML/GGUF + prompts — voir ADR-001).
   - **Contrainte actée pour la phase 2 (Vincent, 2026-07-03)** : le site web devra aussi accepter et décoder les vocaux WhatsApp `.opus`. Faisable sans dépendre de CoreAudio : décodage côté serveur (ffmpeg/libopus) ou côté navigateur (Web Audio API / WebCodecs — support Safari à valider à ce moment-là). À intégrer dès la conception de l'API d'upload.
+- iOS : hors roadmap actuelle.
 - Diarization multi-locuteurs, traduction, résumé, export sous-titres.
 - Multi-user, comptes, télémétrie (AUCUNE télémétrie — argument privacy).
 - App Store (distribution DMG GitHub + Homebrew en phase lancement).
