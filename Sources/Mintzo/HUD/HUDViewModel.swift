@@ -26,6 +26,8 @@ final class HUDViewModel {
     private(set) var languagePulse = 0
     /// Limite technique de durée (s) — décompte Gorri sur les 30 dernières secondes. nil = illimité.
     var maxDuration: Int?
+    /// Désactivable pour figer succès/erreur (tests, previews). true en production.
+    @ObservationIgnored var autoDismissEnabled = true
 
     var timerDisplay: HUDTimerFormatter.Display {
         HUDTimerFormatter.display(elapsed: elapsedSeconds, maxDuration: maxDuration)
@@ -67,10 +69,14 @@ final class HUDViewModel {
             startTicking()
         case .success:
             stopTicking()
-            autoDismissTask = autoDismiss(after: MzMotion.successHoldDuration)
+            if autoDismissEnabled {
+                autoDismissTask = autoDismiss(after: MzMotion.successHoldDuration)
+            }
         case .error:
             stopTicking()
-            autoDismissTask = autoDismiss(after: MzMotion.errorHoldDuration)
+            if autoDismissEnabled {
+                autoDismissTask = autoDismiss(after: MzMotion.errorHoldDuration)
+            }
         case .idle:
             stopTicking()
             startDate = nil
