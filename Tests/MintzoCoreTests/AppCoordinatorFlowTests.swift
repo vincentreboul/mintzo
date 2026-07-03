@@ -30,8 +30,8 @@ private final class MockCapture: DictationCapturing {
         return samplesToReturn
     }
 
-    func emit(rms: Float) {
-        continuation?.yield(CaptureChunk(samples: [], rms: rms))
+    func emit(rms: Float, samples: [Float] = []) {
+        continuation?.yield(CaptureChunk(samples: samples, rms: rms))
     }
 }
 
@@ -101,7 +101,65 @@ private final class MockHistory: DictationHistoryWriting, @unchecked Sendable {
 
 private struct MockModels: DictationModelChecking {
     var installed = true
-    func isModelInstalled(for language: Language) async -> Bool { installed }
+    /// Langues dont le modèle est absent (prioritaire sur `installed`).
+    var missingLanguages: Set<Language> = []
+
+    func isModelInstalled(for language: Language) async -> Bool {
+        if missingLanguages.contains(language) { return false }
+        return installed
+    }
+}
+
+/// Détecteur mock : verdict programmable, indisponibilité simulable.
+private final class MockDetector: DictationLanguageDetecting, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _available = true
+    private var _detection: LanguageDetection?
+    private var _error: (any Error)?
+    private var _detectCallCount = 0
+    private var _availabilityCallCount = 0
+
+    var available: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return _available }
+        set { lock.lock(); defer { lock.unlock() }; _available = newValue }
+    }
+    var detection: LanguageDetection? {
+        get { lock.lock(); defer { lock.unlock() }; return _detection }
+        set { lock.lock(); defer { lock.unlock() }; _detection = newValue }
+    }
+    var error: (any Error)? {
+        get { lock.lock(); defer { lock.unlock() }; return _error }
+        set { lock.lock(); defer { lock.unlock() }; _error = newValue }
+    }
+    var detectCallCount: Int { lock.lock(); defer { lock.unlock() }; return _detectCallCount }
+    var availabilityCallCount: Int { lock.lock(); defer { lock.unlock() }; return _availabilityCallCount }
+
+    func isDetectionAvailable() async -> Bool {
+        consumeAvailability()
+    }
+
+    func detect(samples: [Float]) async throws -> LanguageDetection {
+        let (error, detection) = consumeVerdict()
+        if let error { throw error }
+        guard let detection else {
+            throw TranscriptionServiceError.noModelInstalled(language: "tiny")
+        }
+        return detection
+    }
+
+    // NSLock est interdit dans un contexte async (Swift 6) : sections
+    // critiques dans des helpers SYNCHRONES.
+    private func consumeAvailability() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        _availabilityCallCount += 1
+        return _available
+    }
+
+    private func consumeVerdict() -> ((any Error)?, LanguageDetection?) {
+        lock.lock(); defer { lock.unlock() }
+        _detectCallCount += 1
+        return (_error, _detection)
+    }
 }
 
 // MARK: - Harnais
@@ -112,35 +170,44 @@ private struct FlowHarness {
     let transcriber = MockTranscriber()
     let inserter = MockInserter()
     let history = MockHistory()
+    let detector = MockDetector()
     let flow: DictationFlow
 
     private final class EventLog {
         var outcomes: [DictationFlow.Outcome] = []
         var phases: [DictationFlow.Phase] = []
+        var detectedLanguages: [Language] = []
     }
     private let log = EventLog()
 
     var outcomes: [DictationFlow.Outcome] { log.outcomes }
     var phases: [DictationFlow.Phase] { log.phases }
+    var detectedLanguages: [Language] { log.detectedLanguages }
 
-    init(modelsInstalled: Bool = true) {
+    init(modelsInstalled: Bool = true, missingLanguages: Set<Language> = []) {
         flow = DictationFlow(
             capture: capture,
             transcriber: transcriber,
             inserter: inserter,
             history: history,
-            models: MockModels(installed: modelsInstalled)
+            models: MockModels(installed: modelsInstalled, missingLanguages: missingLanguages),
+            detector: detector
         )
         let log = self.log
         flow.onOutcome = { log.outcomes.append($0) }
         flow.onPhaseChange = { log.phases.append($0) }
+        flow.onLanguageDetected = { log.detectedLanguages.append($0) }
     }
 
     /// Dictée complète : press → écoute effective → release → outcome.
     func runFullSession(language: Language = .basque) async throws {
-        flow.handle(.pressBegan, language: language)
+        try await runFullSession(selection: .fixed(language))
+    }
+
+    func runFullSession(selection: LanguageSelection) async throws {
+        flow.handle(.pressBegan, selection: selection)
         try await waitUntil("écoute démarrée") { flow.phase == .listening }
-        flow.handle(.pressEnded, language: language)
+        flow.handle(.pressEnded, selection: selection)
         try await waitUntil("outcome émis") { !outcomes.isEmpty }
     }
 
@@ -204,9 +271,9 @@ final class AppCoordinatorFlowTests: XCTestCase {
         let harness = FlowHarness()
         harness.transcriber.textToReturn = "bonjour"
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
-        harness.flow.handle(.pressEnded, language: .french)
+        harness.flow.handle(.pressEnded, selection: .fixed(.french))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.transcriber.lastLanguage, "fr")
@@ -218,14 +285,14 @@ final class AppCoordinatorFlowTests: XCTestCase {
         var levels: [Float] = []
         harness.flow.onLevel = { levels.append($0) }
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
         harness.capture.emit(rms: 0.25)
         harness.capture.emit(rms: 0.5)
         try await harness.waitUntil("niveaux reçus") { levels.count == 2 }
 
         XCTAssertEqual(levels, [0.25, 0.5])
-        harness.flow.handle(.pressEnded, language: .basque)
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
     }
 
@@ -234,7 +301,7 @@ final class AppCoordinatorFlowTests: XCTestCase {
     func testMissingModelFailsBeforeOpeningMicrophone() async throws {
         let harness = FlowHarness(modelsInstalled: false)
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.outcomes, [.failed(.modelMissing(.basque))])
@@ -278,7 +345,7 @@ final class AppCoordinatorFlowTests: XCTestCase {
         let harness = FlowHarness()
         harness.capture.startError = CaptureError.engineStartFailed("boom")
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.outcomes, [.failed(.captureFailed)])
@@ -290,7 +357,7 @@ final class AppCoordinatorFlowTests: XCTestCase {
         let harness = FlowHarness()
         harness.capture.startError = CaptureError.permissionDenied
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.outcomes, [.failed(.microphonePermissionDenied)])
@@ -314,7 +381,7 @@ final class AppCoordinatorFlowTests: XCTestCase {
     func testEscapeDuringListeningAbortsCleanly() async throws {
         let harness = FlowHarness()
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
         harness.flow.cancel()
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
@@ -353,9 +420,9 @@ final class AppCoordinatorFlowTests: XCTestCase {
     func testToggleStartsThenStopsSession() async throws {
         let harness = FlowHarness()
 
-        harness.flow.handle(.toggled, language: .basque)
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
         try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
-        harness.flow.handle(.toggled, language: .basque)
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.outcomes, [.inserted])
@@ -366,17 +433,134 @@ final class AppCoordinatorFlowTests: XCTestCase {
         harness.transcriber.textToReturn = "kaixo"
         harness.flow.makeCorrector = { MockCorrector(output: "kaixo", delay: .milliseconds(200)) }
 
-        harness.flow.handle(.pressBegan, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
         try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
-        harness.flow.handle(.pressEnded, language: .basque)
+        harness.flow.handle(.pressEnded, selection: .fixed(.basque))
         try await harness.waitUntil("correction en cours") { harness.flow.phase == .correcting }
         // Pendant le traitement : press/toggle ignorés, pas de deuxième session.
-        harness.flow.handle(.pressBegan, language: .basque)
-        harness.flow.handle(.toggled, language: .basque)
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        harness.flow.handle(.toggled, selection: .fixed(.basque))
         try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
 
         XCTAssertEqual(harness.outcomes.count, 1)
         XCTAssertEqual(harness.capture.startCallCount, 1)
+    }
+
+    // MARK: Mode auto (§4.4 — détection eu/fr)
+
+    func testAutoSessionDetectsLanguageLiveAndRoutesTranscription() async throws {
+        // 3 s de flux micro accumulées → détection « fr » sûre → badge notifié
+        // PENDANT l'écoute, transcription et historique routés sur fr.
+        let harness = FlowHarness()
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.92)
+        harness.transcriber.textToReturn = "bonjour tout le monde"
+
+        harness.flow.handle(.pressBegan, selection: .auto(fallback: .basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        // Fenêtre de détection remplie en 3 chunks (16 000 échantillons chacun).
+        for _ in 0..<3 {
+            harness.capture.emit(rms: 0.3, samples: Array(repeating: 0.1, count: 16_000))
+        }
+        try await harness.waitUntil("langue détectée pendant l'écoute") {
+            !harness.detectedLanguages.isEmpty
+        }
+        XCTAssertEqual(harness.detectedLanguages, [.french], "badge « a→ » → fr en Gorri")
+
+        harness.flow.handle(.pressEnded, selection: .auto(fallback: .basque))
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.outcomes, [.inserted])
+        XCTAssertEqual(harness.transcriber.lastLanguage, "fr")
+        XCTAssertEqual(harness.history.records.first?.langue, .fr,
+                       "l'historique enregistre la langue DÉTECTÉE")
+        XCTAssertEqual(harness.detector.detectCallCount, 1, "une seule détection par session")
+    }
+
+    func testAutoSessionShorterThanWindowDetectsAtStop() async throws {
+        // Session plus courte que la fenêtre de 3 s : pas de verdict live —
+        // tentative unique sur l'audio complet au stop.
+        let harness = FlowHarness()
+        harness.detector.detection = LanguageDetection(language: "eu", confidence: 0.88)
+        harness.transcriber.textToReturn = "egun on"
+
+        try await harness.runFullSession(selection: .auto(fallback: .french))
+
+        XCTAssertEqual(harness.transcriber.lastLanguage, "eu")
+        XCTAssertEqual(harness.history.records.first?.langue, .eu)
+        XCTAssertEqual(harness.detector.detectCallCount, 1)
+        XCTAssertTrue(harness.detectedLanguages.isEmpty,
+                      "pas de feedback badge après le stop (HUD déjà en transcription)")
+    }
+
+    func testAutoLowConfidenceFallsBackToUserDefaultLanguage() async throws {
+        // Détection hésitante (< seuil) → langue de repli de l'utilisateur.
+        let harness = FlowHarness()
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.51)
+
+        try await harness.runFullSession(selection: .auto(fallback: .basque))
+
+        XCTAssertEqual(harness.outcomes, [.inserted], "jamais d'erreur pour une hésitation")
+        XCTAssertEqual(harness.transcriber.lastLanguage, "eu")
+        XCTAssertEqual(harness.history.records.first?.langue, .eu)
+        XCTAssertTrue(harness.detectedLanguages.isEmpty, "verdict hésitant : badge inchangé")
+    }
+
+    func testAutoDetectionUnavailableFallsBackWithoutBlocking() async throws {
+        // Modèle de détection absent (téléchargement silencieux côté service) :
+        // la session continue sur la langue de repli, aucune erreur.
+        let harness = FlowHarness()
+        harness.detector.available = false
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.99)
+
+        try await harness.runFullSession(selection: .auto(fallback: .basque))
+
+        XCTAssertEqual(harness.outcomes, [.inserted])
+        XCTAssertEqual(harness.transcriber.lastLanguage, "eu")
+        XCTAssertEqual(harness.detector.detectCallCount, 0,
+                       "détection jamais tentée sans modèle")
+        XCTAssertEqual(harness.detector.availabilityCallCount, 2,
+                       "disponibilité sondée au démarrage ET re-sondée au stop (download éventuel fini)")
+    }
+
+    func testAutoDetectedLanguageWithMissingModelFallsBack() async throws {
+        // fr détecté mais whisper-fr absent du disque → repli eu, jamais
+        // d'erreur en fin de session (le modèle plancher a été vérifié avant).
+        let harness = FlowHarness(missingLanguages: [.french])
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.95)
+
+        try await harness.runFullSession(selection: .auto(fallback: .basque))
+
+        XCTAssertEqual(harness.outcomes, [.inserted])
+        XCTAssertEqual(harness.transcriber.lastLanguage, "eu")
+        XCTAssertEqual(harness.history.records.first?.langue, .eu)
+    }
+
+    func testAutoFallbackModelMissingFailsBeforeOpeningMicrophone() async throws {
+        // Le modèle PLANCHER (repli) manque : erreur avant le micro, comme en
+        // langue fixe — le mode auto n'ouvre jamais le micro à l'aveugle.
+        let harness = FlowHarness(missingLanguages: [.basque])
+
+        harness.flow.handle(.pressBegan, selection: .auto(fallback: .basque))
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.outcomes, [.failed(.modelMissing(.basque))])
+        XCTAssertEqual(harness.capture.startCallCount, 0)
+    }
+
+    func testStopTimeSelectionSwitchedToAutoTriggersDetection() async throws {
+        // Badge cyclé vers auto EN COURS de dictée : la sélection au STOP fait
+        // foi (même règle que eu↔fr) — détection au stop, routage détecté.
+        let harness = FlowHarness()
+        harness.detector.detection = LanguageDetection(language: "fr", confidence: 0.9)
+        harness.transcriber.textToReturn = "bonjour"
+
+        harness.flow.handle(.pressBegan, selection: .fixed(.basque))
+        try await harness.waitUntil("écoute démarrée") { harness.flow.phase == .listening }
+        harness.flow.handle(.pressEnded, selection: .auto(fallback: .basque))
+        try await harness.waitUntil("outcome émis") { !harness.outcomes.isEmpty }
+
+        XCTAssertEqual(harness.transcriber.lastLanguage, "fr")
+        XCTAssertEqual(harness.history.records.first?.langue, .fr)
     }
 
     // MARK: Insertion dégradée / clipboard

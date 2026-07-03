@@ -199,7 +199,8 @@ final class AppCoordinator {
             transcriber: transcriptionService,
             inserter: insertionService,
             history: historyStore,
-            models: availability
+            models: availability,
+            detector: transcriptionService
         )
     }
 
@@ -214,12 +215,17 @@ final class AppCoordinator {
         flow.onPhaseChange = { [weak self] phase in self?.handlePhaseChange(phase) }
         flow.onLevel = { [weak self] rms in self?.hud.ingest(rms: Double(rms)) }
         flow.onOutcome = { [weak self] outcome in self?.handleOutcome(outcome) }
+        // Mode auto : la langue détectée pendant l'écoute colore le badge
+        // « a→ » en Gorri (§4.2/§4.4).
+        flow.onLanguageDetected = { [weak self] language in
+            self?.hud.setDetectedLanguage(HUDLanguage(language))
+        }
 
         // Clic capsule pendant l'écoute = stop (§4.1) ; clic erreur = détail :
         // fenêtre principale, ou Réglages > Ereduak si le modèle manque.
         hud.onStopRequested = { [weak self] in
             guard let self else { return }
-            self.flow.handle(.pressEnded, language: self.dictationLanguage)
+            self.flow.handle(.pressEnded, selection: self.dictationSelection)
         }
         hud.onErrorTapped = { [weak self] in
             guard let self else { return }
@@ -230,9 +236,13 @@ final class AppCoordinator {
         }
     }
 
-    /// Langue de dictée effective (le badge V1 cycle eu → fr ; auto coercé).
-    private var dictationLanguage: Language {
-        hud.language == .fr ? .french : .basque
+    /// Sélection de langue au moment d'un événement de dictée : fixe (badge
+    /// eu/fr) ou auto avec la langue de repli persistée de l'utilisateur.
+    private var dictationSelection: LanguageSelection {
+        if let fixed = hud.language.dictationLanguage {
+            return .fixed(fixed)
+        }
+        return .auto(fallback: AppSettings.fallbackLanguage)
     }
 
     private func handlePhaseChange(_ phase: DictationFlow.Phase) {
@@ -317,7 +327,7 @@ final class AppCoordinator {
         if opensSession, permissions.snapshot().microphone == .notDetermined {
             _ = await permissions.requestMicrophoneAccess()
         }
-        flow.handle(event, language: dictationLanguage)
+        flow.handle(event, selection: dictationSelection)
     }
 
     // MARK: - Échap = annulation pendant l'écoute (§4.1)
@@ -417,8 +427,9 @@ final class AppCoordinator {
     }
 
     /// Point d'entrée du drop fenêtre entière (§6.3) et du picker menu bar.
+    /// Mode auto : langue nil — détectée fichier par fichier par le service.
     func enqueueFiles(_ urls: [URL]) {
-        let language = dictationLanguage
+        let language = hud.language.dictationLanguage
         for url in urls {
             fileQueue.enqueue(url: url, language: language)
         }
@@ -481,14 +492,16 @@ final class AppCoordinator {
     // MARK: - Langue (§4.4, §5.2)
 
     func setLanguage(_ newLanguage: HUDLanguage) {
-        // Auto masqué V1 : l'auto-détection attend l'exposition de whisper_full_lang_id.
-        let effective = newLanguage == .auto ? .eu : newLanguage
-        guard effective != hud.language else { return }
-        hud.setLanguage(effective)
-        AppSettings.language = effective
+        guard newLanguage != hud.language else { return }
+        hud.setLanguage(newLanguage)
+        AppSettings.language = newLanguage
+        // Une langue EXPLICITE (eu/fr) devient la langue de repli du mode auto.
+        if let explicit = newLanguage.dictationLanguage {
+            AppSettings.fallbackLanguage = explicit
+        }
         // Feedback icône menu bar uniquement hors session (§4.4, §5.2).
         guard !hud.state.isVisible else { return }
-        languageFlash = effective
+        languageFlash = newLanguage
         flashTask?.cancel()
         flashTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(MenuBarGlyph.languageFlashDuration))
@@ -497,18 +510,18 @@ final class AppCoordinator {
         }
     }
 
-    /// Le badge du HUD (fichier vague 2) cycle encore eu → fr → auto : on coerce
-    /// auto → eu ici, et on persiste chaque bascule.
+    /// Persiste chaque bascule du badge HUD (cycle eu → fr → auto, §4.4) —
+    /// même source de vérité que le popover et les réglages : `hud.language`.
     private func observeLanguageChanges() {
         withObservationTracking {
             _ = hud.language
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if self.hud.language == .auto {
-                    self.hud.setLanguage(.eu)
-                }
                 AppSettings.language = self.hud.language
+                if let explicit = self.hud.language.dictationLanguage {
+                    AppSettings.fallbackLanguage = explicit
+                }
                 self.observeLanguageChanges()
             }
         }

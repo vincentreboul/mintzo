@@ -41,9 +41,9 @@ enum MzStrings {
     static var inserted: String { pick("Itsatsita", "Inséré", "Inserted") }
     /// Action VoiceOver de la capsule (§10 : la capsule est un bouton « Gelditu »).
     static var stop: String { pick("Gelditu", "Arrêter", "Stop") }
-    /// Tooltip du badge langue (§4.4). V1 : auto masqué tant que l'auto-détection
-    /// n'est pas exposée (le coordinator coerce auto → eu).
-    static var languageBadgeHelp: String { "eu / fr — ⌃⌥L" }
+    /// Tooltip du badge langue (§4.4). Sans mention du raccourci ⌃⌥L tant
+    /// qu'il n'est pas implémenté — un tooltip ne promet pas dans le vide.
+    static var languageBadgeHelp: String { "eu / fr / auto" }
 
     // MARK: Menu bar (§5.3)
 

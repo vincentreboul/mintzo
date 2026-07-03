@@ -15,9 +15,8 @@ struct MenuBarPopoverView: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
 
-    /// V1 : l'auto-détection n'est pas exposée (le coordinator coerce auto → eu).
-    /// Le segmented n'offre donc que eu / fr — cohérent avec le cycle du HUD.
-    private static let selectableLanguages = HUDLanguage.allCases.filter { $0 != .auto }
+    /// Mêmes trois modes que le cycle du badge HUD (§4.4) : eu / fr / auto.
+    private static let selectableLanguages = HUDLanguage.allCases
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {

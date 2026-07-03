@@ -70,6 +70,13 @@ public actor TranscriptionService {
     /// Moteur chargé (au plus un — un grand modèle = 1,6 à 3,1 Go de RAM).
     private var loadedEngine: (modelID: String, engine: WhisperEngine)?
 
+    /// Moteur de DÉTECTION de langue (whisper-tiny, ~75 Mo) — chargé à la
+    /// demande puis RÉSIDENT : sa petite taille autorise la cohabitation avec
+    /// le gros modèle, et la détection doit rester quasi instantanée (§4.4).
+    private var detectionEngine: WhisperEngine?
+    /// Téléchargement silencieux de whisper-tiny en cours (un seul à la fois).
+    private var detectionModelDownload: Task<Void, Never>?
+
     /// File FIFO des fichiers à transcrire.
     private var pendingJobs: [Job] = []
     private var isProcessing = false
@@ -142,22 +149,116 @@ public actor TranscriptionService {
     /// rechargera paresseusement.
     public func unloadAll() {
         loadedEngine = nil
+        detectionEngine = nil
+    }
+
+    // MARK: - Détection de langue (mode auto, §4.4)
+
+    /// Fenêtre d'analyse : les ~3 premières secondes de la session (16 kHz).
+    public static let detectionWindowSampleCount = 48_000
+    /// Langues candidates du produit — la décision est restreinte à eu vs fr.
+    public static let detectionCandidates = ["eu", "fr"]
+    /// Sous ce seuil (probabilité renormalisée eu/fr), la détection est jugée
+    /// hésitante : l'appelant retombe sur la langue par défaut de l'utilisateur.
+    public static let detectionConfidenceThreshold: Float = 0.65
+
+    /// `true` si le modèle de détection (whisper-tiny) est prêt sur le disque.
+    /// Absent : lance AUSSI son téléchargement silencieux (75 Mo, un seul à la
+    /// fois) — le mode auto s'auto-répare au premier besoin, sans jamais
+    /// bloquer la session en cours (décision client / §4.4).
+    public func isDetectionAvailable() async -> Bool {
+        if await modelManager.isInstalled(ModelCatalog.whisperTiny) { return true }
+        kickDetectionModelDownload()
+        return false
+    }
+
+    /// Détecte eu vs fr sur les premières secondes des échantillons fournis.
+    ///
+    /// Modèle absent → lance UN téléchargement silencieux (75 Mo) en arrière-
+    /// plan et lève `noModelInstalled` : l'appelant retombe sur sa langue de
+    /// repli pour CETTE session, les suivantes profiteront du modèle. Jamais
+    /// d'erreur bloquante (§4.4 / décision client).
+    public func detectLanguage(samples: [Float]) async throws -> LanguageDetection {
+        guard await isDetectionAvailable() else {
+            // isDetectionAvailable a déjà lancé le téléchargement silencieux.
+            throw TranscriptionServiceError.noModelInstalled(
+                language: ModelCatalog.whisperTiny.id
+            )
+        }
+        let engine = try await detectionEngine()
+        let window = Array(samples.prefix(Self.detectionWindowSampleCount))
+        return try await engine.detectLanguage(samples: window, among: Self.detectionCandidates)
+    }
+
+    /// Charge (paresseusement) le moteur tiny résident.
+    private func detectionEngine() async throws -> WhisperEngine {
+        if let detectionEngine { return detectionEngine }
+        guard let url = await modelManager.localURL(for: ModelCatalog.whisperTiny) else {
+            throw TranscriptionServiceError.noModelInstalled(
+                language: ModelCatalog.whisperTiny.id
+            )
+        }
+        do {
+            let engine = try await Task.detached(priority: .userInitiated) {
+                try WhisperEngine(modelPath: url)
+            }.value
+            detectionEngine = engine
+            return engine
+        } catch {
+            throw TranscriptionServiceError.modelLoadFailed(
+                modelID: ModelCatalog.whisperTiny.id, detail: error.localizedDescription
+            )
+        }
+    }
+
+    /// Téléchargement silencieux de whisper-tiny — au plus un à la fois,
+    /// résultat au log uniquement (pas d'UI imposée : calme, §1).
+    private func kickDetectionModelDownload() {
+        guard detectionModelDownload == nil else { return }
+        let manager = modelManager
+        detectionModelDownload = Task { [weak self] in
+            do {
+                for try await _ in manager.download(ModelCatalog.whisperTiny) {}
+                NSLog("Mintzo: modèle de détection %@ téléchargé (auto prêt)",
+                      ModelCatalog.whisperTiny.id)
+            } catch {
+                NSLog("Mintzo: téléchargement du modèle de détection échoué — %@",
+                      error.localizedDescription)
+            }
+            await self?.clearDetectionModelDownload()
+        }
+    }
+
+    private func clearDetectionModelDownload() {
+        detectionModelDownload = nil
     }
 
     // MARK: - Transcription directe
 
     /// Transcrit des échantillons PCM float32 mono 16 kHz.
+    ///
+    /// `language` nil = mode auto : détection eu/fr sur les ~3 premières
+    /// secondes (whisper-tiny), puis routage vers le modèle de la langue
+    /// détectée. Détection indisponible ou hésitante → comportement
+    /// historique (premier modèle installé, auto-détection whisper interne).
     public func transcribe(samples: [Float], language: String?) async throws -> TranscriptionResult {
-        let model = try await selectModel(for: language)
+        var effectiveLanguage = language
+        if language == nil,
+           let detection = try? await detectLanguage(samples: samples),
+           detection.confidence >= Self.detectionConfidenceThreshold {
+            effectiveLanguage = detection.language
+        }
+
+        let model = try await selectModel(for: effectiveLanguage)
         let engine = try await engine(for: model)
 
         let started = ContinuousClock.now
-        let text = try await engine.transcribe(samples: samples, language: language)
+        let text = try await engine.transcribe(samples: samples, language: effectiveLanguage)
         let elapsed = started.duration(to: .now)
 
         return TranscriptionResult(
             text: text,
-            language: language,
+            language: effectiveLanguage,
             modelID: model.id,
             audioDuration: Double(samples.count) / AudioFileDecoder.targetSampleRate,
             processingDuration: Double(elapsed.components.seconds)
