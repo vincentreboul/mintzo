@@ -99,6 +99,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ? WindowSceneID.main
                 : WindowSceneID.onboarding
             presentWindow(id: id, activating: true)
+
+            // Filet : l'activation coopérative (macOS 14+) peut être REFUSÉE à
+            // une app accessoire (autre app frontale qui ne cède pas, dialogue
+            // système). La fenêtre serait alors présentée DERRIÈRE l'app
+            // frontale — vécu « aucune fenêtre ». Une fois la scène créée, si
+            // l'app n'est toujours pas active : ordre au premier plan sans
+            // condition (`orderFrontRegardless`) — visible même sans focus.
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(700))
+                guard let self, !NSApp.isActive else { return }
+                self.raiseSceneWindow(id: id)
+                NSApp.activate()
+            }
+        }
+    }
+
+    /// Met les fenêtres d'une scène au premier plan sans exiger l'activation.
+    private func raiseSceneWindow(id sceneID: String) {
+        for window in NSApp.windows where window.isVisible {
+            guard let identifier = window.identifier?.rawValue,
+                  identifier == sceneID || identifier.hasPrefix("\(sceneID)-")
+            else { continue }
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
         }
     }
 
