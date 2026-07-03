@@ -1,6 +1,8 @@
 # Mintzo — Design Language
 
-Statut : v1.0 — 2026-07-03. Document de référence unique pour toute décision visuelle.
+Statut : v1.1 — 2026-07-03. Document de référence unique pour toute décision visuelle.
+
+> **Amendement v1.1 (décision Vincent, 15:14)** : l'identité s'ancre désormais dans un **symbole basque explicite** — un **lauburu réinterprété typographiquement** (quatre virgules serif en rotation : la ponctuation de la parole). Il devient LA marque : icône app, favicon, logo du site (cohérence exigée entre les trois). L'option « piment de Bayonne » a été écartée (trop localisée pour un outil pan-basque) mais reste réévaluable à la validation de la charte par Vincent, qui se fait sur la production du site. La règle « pas de folklore plaqué » du §1 est amendée : le symbole est assumé, son exécution reste éditoriale (jamais de clipart). Le glyphe caret-et-ondes (§5.1) est conservé UNIQUEMENT comme icône fonctionnelle de menu bar. Assets : `web/app/static/brand/` + `Resources/AppIcon.icns` + SPEC de la marque.
 Cible : macOS 26 « Liquid Glass » (SwiftUI, Swift 6), fallback matériaux macOS 15.
 Règles absolues héritées de la spec : **zéro emoji dans l'UI** (SF Symbols + typographie uniquement), contenu opaque / verre réservé à la couche fonctionnelle, couleurs testées Light + Dark + Increased Contrast + Reduce Transparency.
 
