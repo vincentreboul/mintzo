@@ -1,10 +1,14 @@
 import SwiftUI
 import MintzoCore
 
-// Fenêtre d'onboarding — 3 écrans, 640 × 520 pt, non redimensionnable, fond
-// MzPaper opaque (contenu = jamais de verre, §2.5). Présentée au premier
-// lancement (porte `OnboardingGate`), refermée par « Amaitu » ou le bouton
-// fermer (elle se représentera au prochain lancement tant que non terminée).
+// Fenêtre d'onboarding — 3 écrans, 640 × 520 pt, non redimensionnable.
+// Chrome 100 % natif (amendement v1.2) : barre de titre masquée mais traffic
+// lights présents, fond = windowBackgroundColor système (jamais MzPaper en
+// pleine fenêtre), contrôles système. L'identité Mintzo vit dans le wordmark
+// serif, les accents Gorri et la zone d'essai (surface de lecture).
+// Présentée au premier lancement (porte `OnboardingGate`), refermée par
+// « Amaitu » ou le bouton fermer (elle se représentera au prochain lancement
+// tant que non terminée).
 
 // MARK: - Scène
 
@@ -17,6 +21,8 @@ struct OnboardingScene: Scene {
         Window("Mintzo", id: "onboarding") {
             OnboardingRootView(coordinator: coordinator)
         }
+        // Titre masqué mais chrome système entier : traffic lights visibles,
+        // coins, ombre et fond de fenêtre standards (feel Wispr/SuperWhisper).
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultLaunchBehavior(OnboardingGate.hasCompleted() ? .suppressed : .presented)
@@ -44,35 +50,21 @@ struct OnboardingRootView: View {
         // active (activation coopérative) → les contrôles rendraient à l'état
         // inactif. On force l'état « key » pour une capture représentative.
         .transformEnvironment(\.controlActiveState) { state in
-            if ProcessInfo.processInfo.environment[OnboardingSnapshots.liveEnvironmentKey] != nil {
+            if ProcessInfo.processInfo.environment[OnboardingSnapshots.environmentKey] != nil {
                 state = .key
             }
         }
         #endif
         .task {
             #if DEBUG
+            // Harnais QA : capture la fenêtre réelle (chrome compris) puis quitte.
+            // Ne PAS démarrer le polling permissions : les états QA restent figés.
             if ProcessInfo.processInfo.environment[OnboardingSnapshots.environmentKey] != nil {
                 await OnboardingSnapshots.runIfRequested(controller: controller)
                 return
             }
-            // QA live : `MINTZO_ONBOARDING_SCREEN=baimenak|eredua` ouvre la
-            // fenêtre réelle directement sur un écran (capture des contrôles
-            // AppKit que ImageRenderer ne rastérise pas).
-            if let target = ProcessInfo.processInfo.environment["MINTZO_ONBOARDING_SCREEN"] {
-                let screen: OnboardingScreen? = switch target {
-                case "baimenak": .baimenak
-                case "eredua": .eredua
-                default: nil
-                }
-                if let screen {
-                    while controller.journey.screen != screen { controller.advance() }
-                }
-            }
             #endif
             controller.start()
-            #if DEBUG
-            await OnboardingSnapshots.runLiveCaptureIfRequested(controller: controller)
-            #endif
             // App accessoire (LSUIElement) : sans activation, la fenêtre
             // apparaîtrait derrière l'app frontale au premier lancement.
             NSApp.activate()
@@ -83,8 +75,8 @@ struct OnboardingRootView: View {
 
 // MARK: - Conteneur (écrans + navigation)
 
-/// Rend l'écran courant + la barre de navigation. Séparé de la racine pour
-/// être rendable tel quel par le harnais de snapshots QA (états figés).
+/// Rend l'écran courant + la barre de navigation, sur le fond de fenêtre
+/// système (aucun `.background` custom — amendement v1.2).
 struct OnboardingContainerView: View {
     @Bindable var controller: OnboardingController
     var onFinish: () -> Void = {}
@@ -102,10 +94,9 @@ struct OnboardingContainerView: View {
             .clipped()
             navigationBar
                 .padding(.horizontal, Metrics.marginH)
-                .padding(.bottom, 22)
+                .padding(.bottom, 20)
         }
         .frame(width: Metrics.windowWidth, height: Metrics.windowHeight)
-        .background(MzColor.paper)
     }
 
     // MARK: Écran courant
@@ -142,14 +133,16 @@ struct OnboardingContainerView: View {
         reduceMotion ? MzMotion.micro : MzMotion.morph
     }
 
-    // MARK: Barre de navigation
+    // MARK: Barre de navigation — boutons système uniquement (v1.2)
 
     private var navigationBar: some View {
         HStack {
             if controller.journey.canGoBack {
-                OnboardingBackButton(title: OnboardingStrings.back) {
+                Button(OnboardingStrings.back) {
                     withAnimation(navigationAnimation) { controller.goBack() }
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
                 .transition(.opacity)
             }
             Spacer()
@@ -179,13 +172,15 @@ struct OnboardingContainerView: View {
         }
     }
 
+    /// Points de page discrets : actif = Gorri (accent conservé, v1.2),
+    /// inactifs = gris système quaternaire.
     private var progressDots: some View {
         HStack(spacing: 8) {
             ForEach(OnboardingScreen.allCases, id: \.rawValue) { step in
                 Circle()
                     .fill(step == controller.journey.screen
                           ? AnyShapeStyle(MzColor.gorri)
-                          : AnyShapeStyle(MzColor.inkTertiary.opacity(0.35)))
+                          : AnyShapeStyle(.quaternary))
                     .frame(width: 6, height: 6)
             }
         }
@@ -195,29 +190,6 @@ struct OnboardingContainerView: View {
             step: controller.journey.screen.rawValue + 1,
             of: OnboardingScreen.allCases.count
         ))
-    }
-}
-
-// MARK: - Bouton retour (texte discret, hover encre)
-
-private struct OnboardingBackButton: View {
-    let title: String
-    let action: () -> Void
-
-    @State private var hovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13))
-                .foregroundStyle(hovered ? MzColor.ink : MzColor.inkSecondary)
-                .padding(.vertical, 4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering in
-            withAnimation(MzMotion.micro) { hovered = hovering }
-        }
     }
 }
 
@@ -234,29 +206,27 @@ enum Metrics {
     static let bodyMeasure: CGFloat = 460
     /// Glissé des transitions d'écran — se pose, ne balaye pas.
     static let slideDistance: CGFloat = 28
-
-    static let cardCornerRadius: CGFloat = 10
-    static let hairlineWidth: CGFloat = 0.5
 }
 
 // MARK: - Briques typographiques partagées
 
-/// Titre d'écran §3.2 : SF Pro Display 28/34 Bold, aligné à gauche.
+/// Titre d'écran §3.2 : SF Pro Display 28/34 Bold, aligné à gauche,
+/// couleur label système (le chrome n'utilise plus l'encre custom — v1.2).
 struct OnboardingTitle: View {
     let text: String
 
     var body: some View {
         Text(text)
             .font(MzFont.onboardingTitle)
-            .foregroundStyle(MzColor.ink)
+            .foregroundStyle(.primary)
             .lineSpacing(2)
     }
 }
 
-/// Corps §3.2 : 15/22, mesure 460 pt.
+/// Corps §3.2 : 15/22, mesure 460 pt, couleur secondaire système par défaut.
 struct OnboardingBody: View {
     let text: String
-    var color: Color = MzColor.inkSecondary
+    var color: Color = Color(nsColor: .secondaryLabelColor)
 
     var body: some View {
         Text(text)
@@ -265,24 +235,5 @@ struct OnboardingBody: View {
             .foregroundStyle(color)
             .frame(maxWidth: Metrics.bodyMeasure, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
-    }
-}
-
-/// Carte opaque sur papier : surface, rayon 10, hairline 0,5 pt (§6.3).
-struct OnboardingCard<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        content
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: Metrics.cardCornerRadius, style: .continuous)
-                    .fill(MzColor.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.cardCornerRadius, style: .continuous)
-                    .strokeBorder(MzColor.hairline, lineWidth: Metrics.hairlineWidth)
-            )
     }
 }
