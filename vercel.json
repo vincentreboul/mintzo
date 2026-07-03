@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "cd web/app && npm ci && npm run build",
+  "outputDirectory": "web/app/build",
+  "cleanUrls": true,
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://colleague-illinois-pharmacy-reactions.trycloudflare.com"
+    }
+  }
+}
