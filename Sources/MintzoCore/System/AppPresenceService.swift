@@ -1,7 +1,9 @@
 import AppKit
 import Observation
 
-/// Où Mintzo est visible : barre de menus (défaut historique), Dock, ou les deux.
+/// Où Mintzo est visible : barre de menus, Dock, ou les deux (défaut usine —
+/// retour client : « Mintzo dans la barre de menus ET le Dock » au premier
+/// lancement ; une préférence enregistrée est toujours respectée).
 /// « Nulle part » n'existe pas — le réglage ne l'offre jamais, et le retrait
 /// manuel de l'icône menu bar (⌘-glisser) bascule automatiquement vers le Dock.
 public enum AppPresenceMode: String, CaseIterable, Sendable {
@@ -62,8 +64,10 @@ public final class AppPresenceService {
     ) {
         self.backend = backend ?? NSApplication.shared
         self.defaults = defaults
+        // Clé absente (premier lancement) ou illisible : défaut usine « les
+        // deux ». Toute valeur valide enregistrée est respectée telle quelle.
         let raw = defaults.string(forKey: Self.defaultsKey) ?? ""
-        self.mode = AppPresenceMode(rawValue: raw) ?? .menuBar
+        self.mode = AppPresenceMode(rawValue: raw) ?? .both
     }
 
     /// L'icône de la barre de menus doit exister.

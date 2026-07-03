@@ -36,13 +36,22 @@ final class AppPresenceServiceTests: XCTestCase {
 
     // MARK: - Lecture d'état
 
-    func testDefaultModeIsMenuBar() {
-        XCTAssertEqual(makeService().mode, .menuBar)
+    func testDefaultModeIsBoth() {
+        // Défaut usine (clé absente) : barre de menus ET Dock — retour client.
+        XCTAssertEqual(makeService().mode, .both)
     }
 
-    func testInvalidPersistedValueFallsBackToMenuBar() {
+    func testInvalidPersistedValueFallsBackToBoth() {
         defaults.set("banana", forKey: AppPresenceService.defaultsKey)
-        XCTAssertEqual(makeService().mode, .menuBar)
+        XCTAssertEqual(makeService().mode, .both)
+    }
+
+    func testPersistedPreferenceIsRespectedOverFactoryDefault() {
+        // Une préférence ENREGISTRÉE prime toujours sur le défaut usine.
+        for mode in AppPresenceMode.allCases {
+            defaults.set(mode.rawValue, forKey: AppPresenceService.defaultsKey)
+            XCTAssertEqual(makeService().mode, mode, "préférence persistée \(mode)")
+        }
     }
 
     func testVisibilityMatrix() {
@@ -62,8 +71,9 @@ final class AppPresenceServiceTests: XCTestCase {
     // MARK: - Persistance
 
     func testSetModePersistsAcrossInstances() {
-        makeService().setMode(.both)
-        XCTAssertEqual(makeService().mode, .both, "le mode doit survivre à un relancement")
+        // .menuBar ≠ défaut usine (.both) : prouve une vraie écriture disque.
+        makeService().setMode(.menuBar)
+        XCTAssertEqual(makeService().mode, .menuBar, "le mode doit survivre à un relancement")
     }
 
     func testSetModeWritesRawValue() {
@@ -74,12 +84,22 @@ final class AppPresenceServiceTests: XCTestCase {
     // MARK: - Application de la politique
 
     func testApplyCurrentModeSetsPolicyWithoutActivating() {
+        // Premier lancement (clé absente, défaut « les deux ») : l'icône Dock
+        // doit être là (.regular), sans vol de focus.
         let backend = BackendMock()
         makeService(backend).applyCurrentMode()
 
-        XCTAssertEqual(backend.dockVisibleCalls, [false], "menuBar → .accessory")
+        XCTAssertEqual(backend.dockVisibleCalls, [true], "both → .regular (icône Dock)")
         XCTAssertEqual(backend.activateCalls, 0,
                        "au lancement (login item), pas de vol de focus")
+    }
+
+    func testApplyCurrentModeHidesDockForPersistedMenuBarMode() {
+        defaults.set(AppPresenceMode.menuBar.rawValue, forKey: AppPresenceService.defaultsKey)
+        let backend = BackendMock()
+        makeService(backend).applyCurrentMode()
+
+        XCTAssertEqual(backend.dockVisibleCalls, [false], "menuBar persisté → .accessory")
     }
 
     func testApplyCurrentModeShowsDockForPersistedDockMode() {
@@ -112,7 +132,7 @@ final class AppPresenceServiceTests: XCTestCase {
 
     func testSetModeSameValueIsNoOp() {
         let backend = BackendMock()
-        makeService(backend).setMode(.menuBar)
+        makeService(backend).setMode(.both) // déjà le mode courant (défaut usine)
 
         XCTAssertTrue(backend.dockVisibleCalls.isEmpty)
         XCTAssertEqual(backend.activateCalls, 0)
@@ -156,6 +176,6 @@ final class AppPresenceServiceTests: XCTestCase {
     func testMenuBarInsertedTrueIsNoOp() {
         let service = makeService()
         service.setMenuBarInserted(true)
-        XCTAssertEqual(service.mode, .menuBar)
+        XCTAssertEqual(service.mode, .both, "l'écho d'insertion ne change pas le mode")
     }
 }
