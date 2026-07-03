@@ -92,6 +92,33 @@ enum MzL10n {
     static var detailOriginal: String { t("jatorrizkoa", "original", "original") }
     static var detailCorrige: String { t("zuzendua", "corrigé", "corrected") }
 
+    // MARK: - Lecteur audio (détail)
+
+    static var playerPlay: String { t("Entzun", "Écouter", "Play") }
+    static var playerPause: String { t("Pausatu", "Mettre en pause", "Pause") }
+
+    // MARK: - Relance (détail)
+
+    static var replayMenu: String { t("Berriz sortu", "Relancer", "Regenerate") }
+    static var replayAuto: String { t("Berriz sortu (auto)", "Relancer (auto)", "Regenerate (auto)") }
+    static var replayEU: String { t("Berriz euskaraz", "Relancer en euskara", "Regenerate in Basque") }
+    static var replayFR: String {
+        t("Berriz frantsesez", "Relancer en français", "Regenerate in French")
+    }
+    /// Échecs de relance — formes courtes et sobres (systemRed 11 pt, pas de
+    /// modale) ; le détail technique part au log.
+    static var replayModelMissing: String {
+        t("Eredua falta da — deskargatu Ereduak atalean",
+          "Le modèle est absent — téléchargez-le dans Réglages",
+          "Model missing — download it in Settings")
+    }
+    static var replayAudioUnreadable: String {
+        t("Audioa ezin da irakurri", "L\u{2019}audio est illisible", "The audio can\u{2019}t be read")
+    }
+    static var replayFailed: String {
+        t("Berriz sortzeak huts egin du", "La relance a échoué", "Regeneration failed")
+    }
+
     // MARK: - File d'attente
 
     static var queueWaiting: String { t("zain", "en attente", "queued") }

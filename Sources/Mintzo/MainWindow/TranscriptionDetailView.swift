@@ -6,26 +6,56 @@ import MintzoCore
 /// native. Corps New York 16/26, mesure max 640 pt, sélectionnable.
 /// Toggle discret « jatorrizkoa / zuzendua » (segmented 11 pt) seulement
 /// si un texte corrigé existe. Le chrome (retour, sous-titre) reste système.
+///
+/// Réécoute / relance : si l'entrée a conservé son audio, une surface de
+/// lecture sobre (`MzSurface` + hairline) porte le lecteur — play/pause,
+/// barre de progression 2 pt teintée Gorri, durées monospacedDigit — et le
+/// menu « Berriz sortu » (`arrow.clockwise`) qui repasse l'audio dans le
+/// pipeline complet et met l'entrée à jour EN PLACE.
 struct TranscriptionDetailView: View {
 
     private enum Version: Hashable {
         case jatorrizkoa, zuzendua
     }
 
-    let transcription: Transcription
+    private enum ReplayState: Equatable {
+        case idle
+        case working
+        case failed(String)
+    }
+
+    @State private var current: Transcription
     @State private var version: Version
+    @State private var player: AudioPlayerController?
+    @State private var replayState: ReplayState = .idle
+
+    /// Audio réellement présent sur le disque (évalué une fois à l'ouverture).
+    private let audioURL: URL?
 
     init(transcription: Transcription) {
-        self.transcription = transcription
+        _current = State(initialValue: transcription)
         // Par défaut on montre ce que l'utilisateur a réellement collé :
         // le corrigé s'il existe, sinon le brut.
         _version = State(initialValue: transcription.texteCorrige == nil ? .jatorrizkoa : .zuzendua)
+        if let path = transcription.audioPath, FileManager.default.fileExists(atPath: path) {
+            audioURL = URL(fileURLWithPath: path)
+        } else {
+            audioURL = nil
+        }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if transcription.texteCorrige != nil {
+                if let audioURL {
+                    audioBar(url: audioURL)
+                }
+                if case .failed(let message) = replayState {
+                    Text(message)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color(nsColor: .systemRed))
+                }
+                if current.texteCorrige != nil {
                     versionPicker
                 }
                 Text(displayedText)
@@ -40,14 +70,19 @@ struct TranscriptionDetailView: View {
         }
         .background(MzColor.paper)
         .navigationSubtitle(
-            "\(MzFormat.heure(transcription.date)) · \(MzFormat.duree(transcription.dureeAudio))"
+            "\(MzFormat.heure(current.date)) · \(MzFormat.duree(current.dureeAudio))"
         )
+        .onDisappear {
+            // Un seul lecteur actif dans l'app, et jamais de lecture fantôme
+            // après le retour à la liste.
+            player?.stop()
+        }
     }
 
     private var displayedText: String {
         switch version {
-        case .jatorrizkoa: transcription.texteBrut
-        case .zuzendua: transcription.texteCorrige ?? transcription.texteBrut
+        case .jatorrizkoa: current.texteBrut
+        case .zuzendua: current.texteCorrige ?? current.texteBrut
         }
     }
 
@@ -60,5 +95,139 @@ struct TranscriptionDetailView: View {
         .controlSize(.small)
         .labelsHidden()
         .fixedSize()
+    }
+
+    // MARK: - Surface de lecture (réécoute + relance)
+
+    private func audioBar(url: URL) -> some View {
+        let controller = existingOrNewPlayer(url: url)
+        return HStack(spacing: 12) {
+            playPauseButton(controller)
+            Text(MzFormat.duree(controller.currentTime))
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(MzColor.inkSecondary)
+            progressBar(controller)
+            Text(MzFormat.duree(displayedDuration(controller)))
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(MzColor.inkSecondary)
+            replayControl
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 640)
+        .background(MzColor.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(MzColor.hairline, lineWidth: 0.5)
+        )
+    }
+
+    private func playPauseButton(_ controller: AudioPlayerController) -> some View {
+        Button {
+            controller.togglePlayPause()
+        } label: {
+            Image(systemName: controller.state == .playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(controller.unavailable ? MzColor.inkTertiary : MzColor.ink)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(controller.unavailable)
+        .accessibilityLabel(
+            controller.state == .playing ? MzL10n.playerPause : MzL10n.playerPlay
+        )
+        .help(controller.state == .playing ? MzL10n.playerPause : MzL10n.playerPlay)
+    }
+
+    /// Barre de progression 2 pt — rail `MzHairline`, remplissage Gorri
+    /// (§2.4 : 100 % pour une barre de progression), rien d'autre.
+    private func progressBar(_ controller: AudioPlayerController) -> some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(MzColor.hairline)
+                Capsule()
+                    .fill(MzColor.gorri)
+                    .frame(width: max(0, geometry.size.width * controller.progress))
+            }
+            .frame(height: 2)
+            .frame(maxHeight: .infinity, alignment: .center)
+        }
+        .frame(height: 20)
+        .frame(minWidth: 80)
+    }
+
+    /// Durée affichée : celle du fichier chargé, sinon celle de l'entrée.
+    private func displayedDuration(_ controller: AudioPlayerController) -> TimeInterval {
+        controller.duration > 0 ? controller.duration : current.dureeAudio
+    }
+
+    /// Le lecteur est créé au premier rendu de la surface (pas d'IO : le
+    /// backend AVAudioPlayer n'est chargé qu'au premier play).
+    private func existingOrNewPlayer(url: URL) -> AudioPlayerController {
+        if let player { return player }
+        let controller = AudioPlayerController(url: url, fallbackDuration: current.dureeAudio)
+        Task { @MainActor in player = controller }
+        return controller
+    }
+
+    // MARK: - Relance
+
+    @ViewBuilder
+    private var replayControl: some View {
+        if replayState == .working {
+            // Spinner discret À LA PLACE du menu : une seule relance à la fois.
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: 20, height: 20)
+        } else {
+            Menu {
+                Button(MzL10n.replayAuto) { replay(language: nil) }
+                Button(MzL10n.replayEU) { replay(language: .basque) }
+                Button(MzL10n.replayFR) { replay(language: .french) }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(MzColor.ink)
+                    .frame(width: 20, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .accessibilityLabel(MzL10n.replayMenu)
+            .help(MzL10n.replayMenu)
+        }
+    }
+
+    private func replay(language: Language?) {
+        guard replayState != .working, let service = ReplayService.shared else { return }
+        replayState = .working
+        let entry = current
+        Task { @MainActor in
+            let result = await service.replay(entry, language: language)
+            switch result {
+            case .success(let updated):
+                withAnimation(MzMotion.micro) {
+                    current = updated
+                    version = updated.texteCorrige == nil ? .jatorrizkoa : .zuzendua
+                    replayState = .idle
+                }
+            case .failure(let failure):
+                withAnimation(MzMotion.micro) {
+                    replayState = .failed(Self.message(for: failure))
+                }
+            }
+        }
+    }
+
+    private static func message(for failure: ReplayService.Failure) -> String {
+        switch failure {
+        case .modelMissing: MzL10n.replayModelMissing
+        case .noAudio, .audioUnreadable: MzL10n.replayAudioUnreadable
+        case .noText: MzL10n.queueNoText
+        case .saveFailed: MzL10n.queueHistoryWriteFailed
+        case .transcriptionFailed: MzL10n.replayFailed
+        }
     }
 }
