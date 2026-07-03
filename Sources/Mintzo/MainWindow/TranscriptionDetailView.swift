@@ -26,11 +26,11 @@ struct TranscriptionDetailView: View {
 
     @State private var current: Transcription
     @State private var version: Version
+    /// Lecteur créé UNE fois avec la vue (aucun IO : le backend AVAudioPlayer
+    /// n'est chargé qu'au premier play) — nil si l'entrée n'a pas d'audio
+    /// présent sur le disque.
     @State private var player: AudioPlayerController?
     @State private var replayState: ReplayState = .idle
-
-    /// Audio réellement présent sur le disque (évalué une fois à l'ouverture).
-    private let audioURL: URL?
 
     init(transcription: Transcription) {
         _current = State(initialValue: transcription)
@@ -38,17 +38,18 @@ struct TranscriptionDetailView: View {
         // le corrigé s'il existe, sinon le brut.
         _version = State(initialValue: transcription.texteCorrige == nil ? .jatorrizkoa : .zuzendua)
         if let path = transcription.audioPath, FileManager.default.fileExists(atPath: path) {
-            audioURL = URL(fileURLWithPath: path)
-        } else {
-            audioURL = nil
+            _player = State(initialValue: AudioPlayerController(
+                url: URL(fileURLWithPath: path),
+                fallbackDuration: transcription.dureeAudio
+            ))
         }
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if let audioURL {
-                    audioBar(url: audioURL)
+                if let player {
+                    audioBar(player)
                 }
                 if case .failed(let message) = replayState {
                     Text(message)
@@ -99,9 +100,8 @@ struct TranscriptionDetailView: View {
 
     // MARK: - Surface de lecture (réécoute + relance)
 
-    private func audioBar(url: URL) -> some View {
-        let controller = existingOrNewPlayer(url: url)
-        return HStack(spacing: 12) {
+    private func audioBar(_ controller: AudioPlayerController) -> some View {
+        HStack(spacing: 12) {
             playPauseButton(controller)
             Text(MzFormat.duree(controller.currentTime))
                 .font(.system(size: 11).monospacedDigit())
@@ -160,15 +160,6 @@ struct TranscriptionDetailView: View {
     /// Durée affichée : celle du fichier chargé, sinon celle de l'entrée.
     private func displayedDuration(_ controller: AudioPlayerController) -> TimeInterval {
         controller.duration > 0 ? controller.duration : current.dureeAudio
-    }
-
-    /// Le lecteur est créé au premier rendu de la surface (pas d'IO : le
-    /// backend AVAudioPlayer n'est chargé qu'au premier play).
-    private func existingOrNewPlayer(url: URL) -> AudioPlayerController {
-        if let player { return player }
-        let controller = AudioPlayerController(url: url, fallbackDuration: current.dureeAudio)
-        Task { @MainActor in player = controller }
-        return controller
     }
 
     // MARK: - Relance

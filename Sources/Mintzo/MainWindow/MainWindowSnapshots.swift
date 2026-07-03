@@ -149,7 +149,10 @@ enum MainWindowSnapshots {
         if let detail = makeDetailSeed() {
             await capture(
                 state: "detail-audio",
-                rootView: NavigationStack { TranscriptionDetailView(transcription: detail) },
+                // Même tint que la fenêtre réelle (`MainWindowRootView`) : les
+                // contrôles standards héritent de l'accent Gorri (§2.1).
+                rootView: NavigationStack { TranscriptionDetailView(transcription: detail) }
+                    .tint(MzColor.gorri),
                 in: outputDir,
                 appearances: appearances
             )
