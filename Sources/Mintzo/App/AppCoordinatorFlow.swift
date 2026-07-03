@@ -58,6 +58,44 @@ protocol DictationModelChecking: Sendable {
     func isModelInstalled(for language: Language) async -> Bool
 }
 
+/// Détection de langue eu/fr (implémentée par `TranscriptionService` via
+/// whisper-tiny). Mock dans les tests.
+protocol DictationLanguageDetecting: Sendable {
+    /// Modèle de détection prêt sur le disque ? L'implémentation réelle lance
+    /// le téléchargement silencieux quand il manque et répond `false` — la
+    /// session en cours utilise alors la langue de repli, jamais d'erreur.
+    func isDetectionAvailable() async -> Bool
+    /// Détecte la langue sur une fenêtre d'échantillons (~3 s, 16 kHz).
+    func detect(samples: [Float]) async throws -> LanguageDetection
+}
+
+extension TranscriptionService: DictationLanguageDetecting {
+    func detect(samples: [Float]) async throws -> LanguageDetection {
+        try await detectLanguage(samples: samples)
+    }
+}
+
+/// Sélection de langue d'une session de dictée (§4.4) : fixe (badge eu/fr)
+/// ou auto (badge « a→ » — détection eu/fr, langue de repli si la détection
+/// est indisponible ou hésitante).
+enum LanguageSelection: Equatable, Sendable {
+    case fixed(Language)
+    case auto(fallback: Language)
+
+    /// Langue plancher de la session : la langue fixe, ou le repli du mode auto.
+    var fallback: Language {
+        switch self {
+        case .fixed(let language): language
+        case .auto(let fallback): fallback
+        }
+    }
+
+    var isAuto: Bool {
+        if case .auto = self { return true }
+        return false
+    }
+}
+
 /// Adapter réel : modèle préféré de la langue (eu → whisper-eu, fr → whisper-fr).
 /// `allowAnyInstalledModel` (DEBUG, env `MINTZO_ALLOW_FALLBACK_MODEL=1`) accepte
 /// n'importe quel modèle installé — smoke test manuel avec whisper-tiny sans
@@ -124,6 +162,7 @@ final class DictationFlow {
     private let inserter: any DictationInserting
     private let history: any DictationHistoryWriting
     private let models: any DictationModelChecking
+    private let detector: any DictationLanguageDetecting
 
     // MARK: Configuration (closures : lues en direct, suivent les réglages)
 
@@ -137,6 +176,10 @@ final class DictationFlow {
     var correctionTimeout: Duration = .seconds(10)
     /// En deçà (~0,25 s à 16 kHz), la session est un raté de hotkey : annulation propre.
     var minimumSampleCount = 4_000
+    /// Fenêtre d'analyse du mode auto : ~3 premières secondes (16 kHz).
+    var detectionWindowSampleCount = 48_000
+    /// Confiance eu/fr renormalisée minimale — en deçà, langue de repli.
+    var detectionConfidenceThreshold: Float = 0.65
 
     // MARK: Sorties observées par le coordinator
 
@@ -144,51 +187,63 @@ final class DictationFlow {
     /// Niveau RMS (0…1) d'une fenêtre ~66 ms — alimente la waveform du HUD.
     var onLevel: (@MainActor (Float) -> Void)?
     var onOutcome: (@MainActor (Outcome) -> Void)?
+    /// Mode auto : langue détectée avec confiance suffisante PENDANT l'écoute —
+    /// le badge « a→ » bascule sur elle en Gorri (§4.2/§4.4).
+    var onLanguageDetected: (@MainActor (Language) -> Void)?
 
     // MARK: État
 
     private(set) var phase: Phase = .idle {
         didSet { if phase != oldValue { onPhaseChange?(phase) } }
     }
-    private var sessionLanguage: Language = .basque
+    private var sessionSelection: LanguageSelection = .fixed(.basque)
     private var startupTask: Task<Void, Never>?
     private var chunkTask: Task<Void, Never>?
     /// Stop/annulation arrivés pendant le démarrage asynchrone de la capture.
     private var stopRequestedDuringStartup = false
     private var cancelRequestedDuringStartup = false
+    /// Mode auto : échantillons des premières secondes (fenêtre de détection).
+    private var detectionSamples: [Float] = []
+    private var detectionTask: Task<Void, Never>?
+    /// Verdict retenu pour la session (confiance ≥ seuil), sinon nil.
+    private var sessionDetection: LanguageDetection?
+    /// Modèle de détection prêt au démarrage de CETTE session.
+    private var detectionAvailableForSession = false
 
     init(
         capture: any DictationCapturing,
         transcriber: any DictationTranscribing,
         inserter: any DictationInserting,
         history: any DictationHistoryWriting,
-        models: any DictationModelChecking
+        models: any DictationModelChecking,
+        detector: any DictationLanguageDetecting
     ) {
         self.capture = capture
         self.transcriber = transcriber
         self.inserter = inserter
         self.history = history
         self.models = models
+        self.detector = detector
     }
 
     // MARK: Entrées
 
     /// Point d'entrée des événements hotkey (push-to-talk et toggle confondus).
-    /// `language` = langue du badge HUD au moment de l'événement ; au stop elle
+    /// `selection` = état du badge HUD au moment de l'événement ; au stop elle
     /// fait foi (l'utilisateur peut corriger la langue en cours de dictée, §4.4).
-    func handle(_ event: HotkeyEvent, language: Language) {
+    func handle(_ event: HotkeyEvent, selection: LanguageSelection) {
         switch event {
         case .pressBegan:
-            beginSession(language: language)
+            beginSession(selection: selection)
         case .pressEnded:
-            sessionLanguage = language
+            sessionSelection = selection
             endSession()
         case .toggled:
             switch phase {
             case .idle:
-                beginSession(language: language)
+                beginSession(selection: selection)
             case .listening:
-                sessionLanguage = language
+                sessionSelection = selection
                 endSession()
             case .transcribing, .correcting:
                 break // session déjà en traitement
@@ -205,6 +260,8 @@ final class DictationFlow {
         guard phase == .listening else { return }
         chunkTask?.cancel()
         chunkTask = nil
+        detectionTask?.cancel()
+        detectionTask = nil
         phase = .idle
         let capture = self.capture
         Task { _ = await capture.stop() } // vide la session côté capture, résultat jeté
@@ -213,22 +270,33 @@ final class DictationFlow {
 
     // MARK: Démarrage
 
-    private func beginSession(language: Language) {
+    private func beginSession(selection: LanguageSelection) {
         guard phase == .idle, startupTask == nil else { return }
         stopRequestedDuringStartup = false
         cancelRequestedDuringStartup = false
-        sessionLanguage = language
+        sessionSelection = selection
+        sessionDetection = nil
+        detectionSamples = []
+        detectionTask?.cancel()
+        detectionTask = nil
         startupTask = Task { [weak self] in
-            await self?.runStartup(language: language)
+            await self?.runStartup(selection: selection)
             self?.startupTask = nil
             self?.resolveRequestsReceivedDuringStartup()
         }
     }
 
-    private func runStartup(language: Language) async {
-        // Modèle de la langue courante absent → erreur AVANT d'ouvrir le micro (§9.2).
-        guard await models.isModelInstalled(for: language) else {
-            onOutcome?(.failed(.modelMissing(language)))
+    private func runStartup(selection: LanguageSelection) async {
+        // Mode auto : détection dispo ? (Absente : téléchargement silencieux
+        // lancé par l'implémentation, la session utilisera la langue de repli.)
+        detectionAvailableForSession = selection.isAuto
+            ? await detector.isDetectionAvailable()
+            : false
+
+        // Modèle plancher absent (langue fixe, ou repli du mode auto) →
+        // erreur AVANT d'ouvrir le micro (§9.2).
+        guard await models.isModelInstalled(for: selection.fallback) else {
+            onOutcome?(.failed(.modelMissing(selection.fallback)))
             return
         }
         if cancelRequestedDuringStartup || stopRequestedDuringStartup { return }
@@ -249,7 +317,44 @@ final class DictationFlow {
             for await chunk in stream {
                 guard !Task.isCancelled else { return }
                 self?.onLevel?(chunk.rms)
+                self?.accumulateForDetection(chunk)
             }
+        }
+    }
+
+    // MARK: Détection live (mode auto, §4.4)
+
+    /// Accumule les premières secondes puis lance UNE détection : le badge
+    /// « a→ » bascule sur la langue détectée pendant que l'utilisateur parle.
+    private func accumulateForDetection(_ chunk: CaptureChunk) {
+        guard sessionSelection.isAuto, detectionAvailableForSession,
+              detectionTask == nil else { return }
+        detectionSamples.append(contentsOf: chunk.samples)
+        guard detectionSamples.count >= detectionWindowSampleCount else { return }
+        launchDetection(on: detectionSamples)
+        detectionSamples = [] // fenêtre transmise — rien d'autre à retenir
+    }
+
+    private func launchDetection(on samples: [Float]) {
+        guard detectionTask == nil else { return }
+        let detector = self.detector
+        detectionTask = Task { [weak self] in
+            let detection = try? await detector.detect(samples: samples)
+            guard !Task.isCancelled else { return }
+            self?.applyDetection(detection)
+        }
+    }
+
+    private func applyDetection(_ detection: LanguageDetection?) {
+        guard sessionSelection.isAuto, phase == .listening || phase == .transcribing,
+              let detection,
+              detection.confidence >= detectionConfidenceThreshold,
+              let language = Language(rawValue: detection.language) else { return }
+        sessionDetection = detection
+        // Feedback badge seulement pendant l'écoute — après le stop, le verdict
+        // sert au routage, le HUD est déjà passé en « Transkribatzen… ».
+        if phase == .listening {
+            onLanguageDetected?(language)
         }
     }
 
@@ -283,13 +388,16 @@ final class DictationFlow {
 
     private func runCompletion() async {
         let samples = await capture.stop()
-        let language = sessionLanguage
 
         // Tap raté / micro à peine ouvert : annulation silencieuse, pas d'erreur.
         guard samples.count >= minimumSampleCount else {
             finish(.cancelled)
             return
         }
+
+        // Langue effective de la session : fixe, détectée, ou repli. Elle fait
+        // foi pour la transcription, la correction ET l'historique (§4.4).
+        let language = await resolveSessionLanguage(samples: samples)
 
         let result: TranscriptionResult
         do {
@@ -350,8 +458,40 @@ final class DictationFlow {
         finish(outcome)
     }
 
+    /// Verdict de langue au stop (mode auto) : détection live si elle a rendu,
+    /// sinon tentative unique sur l'audio complet (session plus courte que la
+    /// fenêtre), sinon langue de repli. Le modèle de la langue détectée doit
+    /// être présent — sinon repli, jamais d'erreur en fin de session.
+    private func resolveSessionLanguage(samples: [Float]) async -> Language {
+        switch sessionSelection {
+        case .fixed(let language):
+            return language
+        case .auto(let fallback):
+            if let task = detectionTask {
+                await task.value // verdict de la détection live (rapide : tiny)
+            }
+            if sessionDetection == nil, detectionAvailableForSession {
+                let window = Array(samples.prefix(detectionWindowSampleCount))
+                applyDetection(try? await detector.detect(samples: window))
+            }
+            guard let detection = sessionDetection,
+                  let detected = Language(rawValue: detection.language) else {
+                NSLog("Mintzo: détection eu/fr indisponible ou hésitante — repli « %@ »",
+                      fallback.rawValue)
+                return fallback
+            }
+            guard await models.isModelInstalled(for: detected) else {
+                NSLog("Mintzo: modèle absent pour la langue détectée « %@ » — repli « %@ »",
+                      detected.rawValue, fallback.rawValue)
+                return fallback
+            }
+            return detected
+        }
+    }
+
     private func finish(_ outcome: Outcome) {
         phase = .idle
+        detectionTask = nil
         onOutcome?(outcome)
     }
 

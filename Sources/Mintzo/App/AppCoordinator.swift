@@ -199,7 +199,8 @@ final class AppCoordinator {
             transcriber: transcriptionService,
             inserter: insertionService,
             history: historyStore,
-            models: availability
+            models: availability,
+            detector: transcriptionService
         )
     }
 
@@ -214,12 +215,17 @@ final class AppCoordinator {
         flow.onPhaseChange = { [weak self] phase in self?.handlePhaseChange(phase) }
         flow.onLevel = { [weak self] rms in self?.hud.ingest(rms: Double(rms)) }
         flow.onOutcome = { [weak self] outcome in self?.handleOutcome(outcome) }
+        // Mode auto : la langue détectée pendant l'écoute colore le badge
+        // « a→ » en Gorri (§4.2/§4.4).
+        flow.onLanguageDetected = { [weak self] language in
+            self?.hud.setDetectedLanguage(HUDLanguage(language))
+        }
 
         // Clic capsule pendant l'écoute = stop (§4.1) ; clic erreur = détail :
         // fenêtre principale, ou Réglages > Ereduak si le modèle manque.
         hud.onStopRequested = { [weak self] in
             guard let self else { return }
-            self.flow.handle(.pressEnded, language: self.dictationLanguage)
+            self.flow.handle(.pressEnded, selection: self.dictationSelection)
         }
         hud.onErrorTapped = { [weak self] in
             guard let self else { return }
@@ -230,9 +236,13 @@ final class AppCoordinator {
         }
     }
 
-    /// Langue de dictée effective (le badge V1 cycle eu → fr ; auto coercé).
-    private var dictationLanguage: Language {
-        hud.language == .fr ? .french : .basque
+    /// Sélection de langue au moment d'un événement de dictée : fixe (badge
+    /// eu/fr) ou auto avec la langue de repli persistée de l'utilisateur.
+    private var dictationSelection: LanguageSelection {
+        if let fixed = hud.language.dictationLanguage {
+            return .fixed(fixed)
+        }
+        return .auto(fallback: AppSettings.fallbackLanguage)
     }
 
     private func handlePhaseChange(_ phase: DictationFlow.Phase) {
@@ -317,7 +327,7 @@ final class AppCoordinator {
         if opensSession, permissions.snapshot().microphone == .notDetermined {
             _ = await permissions.requestMicrophoneAccess()
         }
-        flow.handle(event, language: dictationLanguage)
+        flow.handle(event, selection: dictationSelection)
     }
 
     // MARK: - Échap = annulation pendant l'écoute (§4.1)

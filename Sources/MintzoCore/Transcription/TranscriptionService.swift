@@ -163,8 +163,13 @@ public actor TranscriptionService {
     public static let detectionConfidenceThreshold: Float = 0.65
 
     /// `true` si le modèle de détection (whisper-tiny) est prêt sur le disque.
+    /// Absent : lance AUSSI son téléchargement silencieux (75 Mo, un seul à la
+    /// fois) — le mode auto s'auto-répare au premier besoin, sans jamais
+    /// bloquer la session en cours (décision client / §4.4).
     public func isDetectionAvailable() async -> Bool {
-        await modelManager.isInstalled(ModelCatalog.whisperTiny)
+        if await modelManager.isInstalled(ModelCatalog.whisperTiny) { return true }
+        kickDetectionModelDownload()
+        return false
     }
 
     /// Détecte eu vs fr sur les premières secondes des échantillons fournis.
@@ -175,7 +180,7 @@ public actor TranscriptionService {
     /// d'erreur bloquante (§4.4 / décision client).
     public func detectLanguage(samples: [Float]) async throws -> LanguageDetection {
         guard await isDetectionAvailable() else {
-            kickDetectionModelDownload()
+            // isDetectionAvailable a déjà lancé le téléchargement silencieux.
             throw TranscriptionServiceError.noModelInstalled(
                 language: ModelCatalog.whisperTiny.id
             )
