@@ -238,6 +238,9 @@ public final class LanguageCycleHotkey {
         let transitions = source.events()
         pumpTask = Task { @MainActor in
             for await transition in transitions where transition == .down {
+                // `AsyncStream` draine son buffer même après `cancel()` : sans ce
+                // garde, des appuis déjà en file déclencheraient après `stop()`.
+                guard !Task.isCancelled else { break }
                 onCycle()
             }
         }
