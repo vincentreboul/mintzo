@@ -4,6 +4,8 @@
 
 [Euskara](README.md) · [Français](README.fr.md) · **English**
 
+**Website and online tool: [www.mintzo.fr](https://www.mintzo.fr)** · **[Download the Mac app](https://github.com/vincentreboul/mintzo/releases/latest)**
+
 ## What Mintzo does
 
 - **System-wide dictation.** Press a global hotkey, speak, and the corrected text is inserted at the cursor in any application. A copy goes to the clipboard and to the history.
@@ -20,7 +22,7 @@ Basque deserves first-rank tools — on par with what English or French speakers
 
 ## Status
 
-Under active development; the first version is being built. For now, Mintzo can only be used by building it from source: there is no downloadable release yet.
+Under active development. **[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch, right-click the app and choose "Open". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 

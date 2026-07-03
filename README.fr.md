@@ -4,6 +4,8 @@
 
 [Euskara](README.md) · **Français** · [English](README.en.md)
 
+**Site et outil en ligne : [www.mintzo.fr](https://www.mintzo.fr)** · **[Télécharger l'app Mac](https://github.com/vincentreboul/mintzo/releases/latest)**
+
 ## Ce que fait Mintzo
 
 - **Dictée système.** Un raccourci global, vous parlez, le texte corrigé s'insère au curseur dans n'importe quelle application. Une copie part au presse-papier et dans l'historique.
@@ -20,7 +22,7 @@ L'euskara mérite des outils de premier rang — au niveau de ceux dont bénéfi
 
 ## État
 
-En développement actif ; la première version est en construction. Pour l'instant, Mintzo ne s'utilise qu'en le compilant depuis les sources : il n'existe pas encore de version téléchargeable.
+En développement actif. **[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : à la première ouverture, clic droit sur l'app puis « Ouvrir ». L'outil en ligne : [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Les contributions sont bienvenues ; voir [CONTRIBUTING.md](CONTRIBUTING.md).
 

@@ -4,6 +4,8 @@
 
 **Euskara** · [Français](README.fr.md) · [English](README.en.md)
 
+**Webgunea eta lineako tresna : [www.mintzo.fr](https://www.mintzo.fr)** · **[Deskargatu Mac aplikazioa](https://github.com/vincentreboul/mintzo/releases/latest)**
+
 ## Zer egiten duen
 
 - **Diktaketa sistema osoan.** Laster-tekla globala sakatu, hitz egin, eta testu zuzendua kurtsorean itsasten da, edozein aplikaziotan. Kopia bat arbelean eta historian gordetzen da.
@@ -20,7 +22,7 @@ Euskarak lehen mailako tresnak merezi ditu — ingelesak eta frantsesak dituzten
 
 ## Egoera
 
-Garapen aktiboan; lehen bertsioa eraikitzen ari gara. Oraingoz, iturburutik eraikita bakarrik erabil daiteke: ez dago deskargatzeko bertsiorik oraindik.
+Garapen aktiboan. **[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran, eskuin-klik aplikazioan eta « Ireki ». Lineako tresna: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Ekarpenak ongi etorriak dira; ikus [CONTRIBUTING.md](CONTRIBUTING.md).
 
