@@ -12,6 +12,7 @@ struct MainWindowScene: Scene {
     var queue: (any QueueDisplaying)?
     var onFilesDropped: ([URL]) -> Void
 
+    @MainActor
     init(
         store: HistoryStore,
         queue: (any QueueDisplaying)? = nil,
@@ -20,10 +21,14 @@ struct MainWindowScene: Scene {
         self.store = store
         self.queue = queue
         self.onFilesDropped = onFilesDropped
+        #if DEBUG
+        MainWindowSnapshots.scheduleIfRequested()
+        #endif
     }
 
     /// Convenience : store standard sur disque, repli mémoire si le disque
     /// est indisponible (la fenêtre doit toujours pouvoir s'ouvrir).
+    @MainActor
     init() {
         let store = (try? HistoryStore.standard()) ?? (try? HistoryStore.inMemory())
         guard let store else {
