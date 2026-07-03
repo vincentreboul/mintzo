@@ -26,9 +26,10 @@ logger = logging.getLogger("mintzo.pipeline")
 
 LANGUAGES: tuple[str, ...] = ("eu", "fr")
 
-#: Formats accepted by /v1/transcribe (WhatsApp voice notes are .opus).
+#: Formats accepted by /v1/transcribe (WhatsApp voice notes are .opus ;
+#: .webm/.mp4 = sorties MediaRecorder de la dictée navigateur, décodées par ffmpeg).
 ALLOWED_EXTENSIONS: frozenset[str] = frozenset(
-    {".opus", ".m4a", ".mp3", ".wav", ".aac", ".ogg", ".flac"}
+    {".opus", ".m4a", ".mp3", ".wav", ".aac", ".ogg", ".flac", ".webm", ".mp4"}
 )
 
 

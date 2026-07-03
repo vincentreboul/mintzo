@@ -22,6 +22,24 @@ def test_decode_opus_to_wav_16k_mono(opus_fixture: Path, tmp_path: Path):
     assert decoded.duration_seconds == pytest.approx(1.2, abs=0.15)
 
 
+def test_decode_webm_mediarecorder(opus_fixture: Path, tmp_path: Path):
+    """La dictée navigateur envoie du .webm (MediaRecorder) — décodé comme le reste."""
+    import subprocess
+    from tests.conftest import FFMPEG
+
+    webm = tmp_path / "diktaketa.webm"
+    subprocess.run(
+        [FFMPEG, "-hide_banner", "-nostdin", "-y", "-i", str(opus_fixture),
+         "-c:a", "libopus", "-f", "webm", str(webm)],
+        check=True, capture_output=True,
+    )
+    decoded = pipeline.decode(webm, tmp_path)
+    with wave.open(str(decoded.path), "rb") as wav:
+        assert wav.getframerate() == 16000
+        assert wav.getnchannels() == 1
+    assert decoded.duration_seconds == pytest.approx(1.2, abs=0.2)
+
+
 def test_decode_rejects_unknown_extension(tmp_path: Path):
     bogus = tmp_path / "note.txt"
     bogus.write_bytes(b"not audio")
