@@ -57,6 +57,16 @@ enum SettingsStrings {
              "Désactivé : le texte reste dans le presse-papiers, à coller avec ⌘V.",
              "Off: text stays on the clipboard, paste it with ⌘V.")
     }
+    static var loginItemToggle: String {
+        pick("Abiaraztean ireki",
+             "Ouvrir à l'ouverture de session",
+             "Open at login")
+    }
+    static var loginItemNeedsApproval: String {
+        pick("Onarpena falta da Sistemaren ezarpenetan",
+             "Approbation requise dans les Réglages Système",
+             "Approval required in System Settings")
+    }
 
     // MARK: Ereduak
 

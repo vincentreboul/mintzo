@@ -3,13 +3,21 @@ import KeyboardShortcuts
 import MintzoCore
 
 /// Onglet Orokorra : langue par défaut, raccourci de dictée, touche Fn
-/// (avec état de la permission Accessibilité + deep-link), mode d'insertion.
+/// (avec état de la permission Accessibilité + deep-link), mode d'insertion,
+/// ouverture à l'ouverture de session.
 struct OrokorraSettingsView: View {
     @Bindable var coordinator: AppCoordinator
 
     @State private var fnEnabled = AppSettings.fnKeyEnabled
     @State private var autoInsert = AppSettings.autoInsert
     @State private var permissions: PermissionsSnapshot?
+
+    // SMAppService est la source de vérité (pas de flag UserDefaults) :
+    // l'état est relu par polling tant que l'onglet est affiché, comme les
+    // permissions TCC — l'approbation se fait hors app, dans Réglages Système.
+    @State private var loginItems = LoginItemService()
+    @State private var openAtLogin = false
+    @State private var loginNeedsApproval = false
 
     var body: some View {
         Form {
@@ -41,9 +49,16 @@ struct OrokorraSettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(MzColor.inkSecondary)
             }
+
+            Section {
+                Toggle(SettingsStrings.loginItemToggle, isOn: $openAtLogin)
+                if loginNeedsApproval {
+                    loginItemApprovalRow
+                }
+            }
         }
         .formStyle(.grouped)
-        .frame(height: 340)
+        .frame(height: 400)
         .onChange(of: fnEnabled) { _, newValue in
             AppSettings.fnKeyEnabled = newValue
             coordinator.hotkeySettingsChanged()
@@ -51,12 +66,60 @@ struct OrokorraSettingsView: View {
         .onChange(of: autoInsert) { _, newValue in
             AppSettings.autoInsert = newValue
         }
+        .onChange(of: openAtLogin) { _, newValue in
+            setLoginItem(newValue)
+        }
+        .task {
+            // État initial immédiat, puis re-lecture périodique tant que
+            // l'onglet est affiché (l'approbation arrive de Réglages Système).
+            while !Task.isCancelled {
+                refreshLoginItem()
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
         .task {
             // État initial immédiat, puis polling des changements TCC tant que
             // l'onglet est affiché (le flux s'arrête à la disparition de la vue).
             for await snapshot in coordinator.permissions.changes() {
                 permissions = snapshot
             }
+        }
+    }
+
+    // MARK: - Ouverture de session
+
+    /// Relit l'état réel. Le toggle reflète l'inscription (active OU en
+    /// attente d'approbation) ; la ligne d'approbation explique l'attente.
+    private func refreshLoginItem() {
+        openAtLogin = loginItems.isEnabled || loginItems.needsApproval
+        loginNeedsApproval = loginItems.needsApproval
+    }
+
+    private func setLoginItem(_ enabled: Bool) {
+        // Ignore les onChange déclenchés par refreshLoginItem() lui-même.
+        guard enabled != (loginItems.isEnabled || loginItems.needsApproval) else { return }
+        do {
+            try loginItems.setEnabled(enabled)
+        } catch {
+            // register/unregister refusé par le système : l'UI revient à l'état réel.
+        }
+        refreshLoginItem()
+    }
+
+    /// Même pattern que la ligne Accessibilité : pastille + texte + deep-link.
+    private var loginItemApprovalRow: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(MzColor.gorri)
+                .frame(width: 7, height: 7)
+            Text(SettingsStrings.loginItemNeedsApproval)
+                .font(.system(size: 12))
+                .foregroundStyle(MzColor.inkSecondary)
+            Spacer()
+            Button(SettingsStrings.openSystemSettings) {
+                loginItems.openSystemSettings()
+            }
+            .controlSize(.small)
         }
     }
 
