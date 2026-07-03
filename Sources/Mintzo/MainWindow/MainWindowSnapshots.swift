@@ -101,8 +101,14 @@ enum MainWindowSnapshots {
         // Laisser l'app finir son lancement (scènes, menu bar).
         try? await Task.sleep(for: .milliseconds(800))
 
-        // Chrome et microcopy déterministes : euskara (référence du §6.2).
-        MzL10n.forced = .eu
+        // Chrome et microcopy déterministes : euskara par défaut (référence du §6.2),
+        // surchargeable pour les tours visuels multilingues via
+        // `-mintzo.windowSnapshotLanguage eu|fr|en`.
+        switch UserDefaults.standard.string(forKey: "mintzo.windowSnapshotLanguage") {
+        case "fr": MzL10n.forced = .fr
+        case "en": MzL10n.forced = .en
+        default: MzL10n.forced = .eu
+        }
 
         // Activation réelle best-effort (sans conséquence sur le rendu :
         // `forceActiveRendering` l'a rendu indépendant du focus système).
