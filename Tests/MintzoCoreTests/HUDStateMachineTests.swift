@@ -58,9 +58,10 @@ final class HUDStateMachineTests: XCTestCase {
 
     func testCapsuleWidthsPerState() {
         XCTAssertNil(HUDState.idle.fixedWidth)
-        XCTAssertEqual(HUDState.listening.fixedWidth, 208)
-        XCTAssertEqual(HUDState.transcribing.fixedWidth, 156)
-        XCTAssertEqual(HUDState.correcting.fixedWidth, 156)
+        // §4.3 + ~24 pt : les états actifs portent la croix d'annulation.
+        XCTAssertEqual(HUDState.listening.fixedWidth, 236)
+        XCTAssertEqual(HUDState.transcribing.fixedWidth, 180)
+        XCTAssertEqual(HUDState.correcting.fixedWidth, 180)
         XCTAssertEqual(HUDState.success(message: nil).fixedWidth, 112)
         XCTAssertNil(HUDState.error(message: "e").fixedWidth, "Erreur : largeur au contenu")
         XCTAssertEqual(HUDState.error(message: "e").maxWidth, 320)

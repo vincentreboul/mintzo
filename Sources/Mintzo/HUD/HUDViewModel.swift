@@ -44,6 +44,8 @@ final class HUDViewModel {
 
     var onStopRequested: (@MainActor () -> Void)?
     var onErrorTapped: (@MainActor () -> Void)?
+    /// Croix d'annulation / Échap : abandon de la session, aucun texte inséré.
+    var onCancelRequested: (@MainActor () -> Void)?
 
     // MARK: Privé
 
@@ -116,6 +118,14 @@ final class HUDViewModel {
         default:
             break
         }
+    }
+
+    /// Clic sur la croix : abandon PROPRE de la session dans tous les états
+    /// actifs (écoute, transcription, correction) — contrairement au clic
+    /// capsule qui, en écoute, signifie « stop et transcris » (§4.1).
+    func cancelTapped() {
+        guard state == .listening || state.isProcessing else { return }
+        onCancelRequested?()
     }
 
     /// Clic badge / raccourci ⌃⌥L : cycle eu → fr → auto → eu, pulse unique du badge.

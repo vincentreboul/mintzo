@@ -199,6 +199,9 @@ final class DictationFlow {
     private var sessionSelection: LanguageSelection = .fixed(.basque)
     private var startupTask: Task<Void, Never>?
     private var chunkTask: Task<Void, Never>?
+    /// Fin de session en cours (stop → transcription → correction → insertion) —
+    /// annulable par la croix / Échap tant que rien n'est inséré.
+    private var completionTask: Task<Void, Never>?
     /// Stop/annulation arrivés pendant le démarrage asynchrone de la capture.
     private var stopRequestedDuringStartup = false
     private var cancelRequestedDuringStartup = false
@@ -251,21 +254,36 @@ final class DictationFlow {
         }
     }
 
-    /// Échap pendant l'écoute : abort propre, échantillons jetés, HUD refermé.
+    /// Croix / Échap : abort propre de la session, quel que soit l'état actif.
+    /// Écoute : échantillons jetés. Transcription / correction : la tâche de
+    /// fin de session est annulée AVANT toute insertion — les moteurs
+    /// (whisper, llama) reçoivent l'annulation par propagation, leur résultat
+    /// éventuel meurt dans son coin. Aucun texte inséré, rien d'historisé.
     func cancel() {
         if startupTask != nil {
             cancelRequestedDuringStartup = true
             return
         }
-        guard phase == .listening else { return }
-        chunkTask?.cancel()
-        chunkTask = nil
-        detectionTask?.cancel()
-        detectionTask = nil
-        phase = .idle
-        let capture = self.capture
-        Task { _ = await capture.stop() } // vide la session côté capture, résultat jeté
-        onOutcome?(.cancelled)
+        switch phase {
+        case .listening:
+            chunkTask?.cancel()
+            chunkTask = nil
+            detectionTask?.cancel()
+            detectionTask = nil
+            phase = .idle
+            let capture = self.capture
+            Task { _ = await capture.stop() } // vide la session côté capture, résultat jeté
+            onOutcome?(.cancelled)
+        case .transcribing, .correcting:
+            completionTask?.cancel()
+            completionTask = nil
+            detectionTask?.cancel()
+            detectionTask = nil
+            phase = .idle
+            onOutcome?(.cancelled)
+        case .idle:
+            break
+        }
     }
 
     // MARK: Démarrage
@@ -381,13 +399,17 @@ final class DictationFlow {
         phase = .transcribing
         chunkTask?.cancel()
         chunkTask = nil
-        Task { [weak self] in
+        completionTask = Task { [weak self] in
             await self?.runCompletion()
+            self?.completionTask = nil
         }
     }
 
     private func runCompletion() async {
         let samples = await capture.stop()
+        // Session annulée (croix / Échap) pendant un await : `cancel()` a déjà
+        // posé phase = .idle et émis `.cancelled` — tout résultat est jeté ici.
+        guard !Task.isCancelled else { return }
 
         // Tap raté / micro à peine ouvert : annulation silencieuse, pas d'erreur.
         guard samples.count >= minimumSampleCount else {
@@ -398,15 +420,18 @@ final class DictationFlow {
         // Langue effective de la session : fixe, détectée, ou repli. Elle fait
         // foi pour la transcription, la correction ET l'historique (§4.4).
         let language = await resolveSessionLanguage(samples: samples)
+        guard !Task.isCancelled else { return }
 
         let result: TranscriptionResult
         do {
             result = try await transcriber.transcribe(samples: samples, language: language.rawValue)
         } catch {
+            guard !Task.isCancelled else { return }
             let detail = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             finish(.failed(.transcriptionFailed(detail)))
             return
         }
+        guard !Task.isCancelled else { return }
 
         let raw = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else {
@@ -423,6 +448,9 @@ final class DictationFlow {
             )
         }
         finalText = Self.postProcess(finalText)
+        // Dernier point de contrôle AVANT l'insertion : une session annulée
+        // n'insère JAMAIS de texte (et n'historise rien).
+        guard !Task.isCancelled else { return }
 
         let outcome: Outcome
         if autoInsertEnabled() {
