@@ -39,6 +39,17 @@ enum MzL10n {
 
     // MARK: - Fenêtre principale
 
+    static var delete: String { t("Ezabatu", "Supprimer", "Delete") }
+    static var deleteAll: String { t("Ezabatu dena", "Tout effacer", "Delete all") }
+    static var moreActions: String { t("Gehiago", "Plus d\u{2019}actions", "More") }
+    static var deleteAllConfirmTitle: String {
+        t("Historia osoa ezabatu?", "Effacer tout l\u{2019}historique ?", "Delete all history?")
+    }
+    static var deleteAllConfirmMessage: String {
+        t("Transkripzio guztiak betiko ezabatuko dira.",
+          "Toutes les transcriptions seront définitivement supprimées.",
+          "All transcriptions will be permanently deleted.")
+    }
     static var dictateNow: String { t("Diktatu", "Dicter", "Dictate") }
     static var dictateNowHelp: String {
         t("Hasi diktaketa mikrofonoarekin — laster-teklarik gabe",

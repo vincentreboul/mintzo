@@ -13,6 +13,8 @@ struct HistoryCellView: View {
     let transcription: Transcription
     /// Termes à surligner (`MzGorri` 24 %) en mode recherche.
     var highlightTerms: [String] = []
+    /// Suppression de la rangée (menu contextuel + swipe côté liste).
+    var onDelete: (() -> Void)? = nil
 
     @State private var isHovered = false
     @State private var justCopied = false
@@ -42,6 +44,12 @@ struct HistoryCellView: View {
         }
         .contextMenu {
             Button(MzL10n.copy, systemImage: "doc.on.doc", action: copy)
+            if let onDelete {
+                Divider()
+                Button(role: .destructive, action: onDelete) {
+                    Label(MzL10n.delete, systemImage: "trash")
+                }
+            }
         }
         .accessibilityElement(children: .combine)
     }

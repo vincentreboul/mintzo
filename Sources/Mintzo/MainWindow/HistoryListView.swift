@@ -19,6 +19,7 @@ struct HistoryListView: View {
 
     @State private var transcriptions: [Transcription]
     @State private var searchText = ""
+    @State private var confirmingDeleteAll = false
     @State private var searchResults: [Transcription] = []
     @State private var filter: SourceFilter = .dena
 
@@ -62,6 +63,26 @@ struct HistoryListView: View {
                         }
                         .help(MzL10n.dictateNowHelp)
                     }
+                    ToolbarItem(placement: .secondaryAction) {
+                        Menu {
+                            Button(role: .destructive) {
+                                confirmingDeleteAll = true
+                            } label: {
+                                Label(MzL10n.deleteAll, systemImage: "trash")
+                            }
+                            .disabled(transcriptions.isEmpty)
+                        } label: {
+                            Label(MzL10n.moreActions, systemImage: "ellipsis.circle")
+                        }
+                    }
+                }
+                .confirmationDialog(
+                    MzL10n.deleteAllConfirmTitle,
+                    isPresented: $confirmingDeleteAll
+                ) {
+                    Button(MzL10n.deleteAll, role: .destructive) { deleteAll() }
+                } message: {
+                    Text(MzL10n.deleteAllConfirmMessage)
                 }
                 .searchable(
                     text: $searchText,
@@ -154,19 +175,45 @@ struct HistoryListView: View {
     @ViewBuilder
     private func rows(_ items: [Transcription], highlightTerms: [String] = []) -> some View {
         ForEach(items) { transcription in
-            if let onOpenDetail {
-                Button {
-                    onOpenDetail(transcription)
-                } label: {
-                    HistoryCellView(transcription: transcription, highlightTerms: highlightTerms)
+            Group {
+                if let onOpenDetail {
+                    Button {
+                        onOpenDetail(transcription)
+                    } label: {
+                        HistoryCellView(
+                            transcription: transcription,
+                            highlightTerms: highlightTerms,
+                            onDelete: { delete(transcription) }
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    NavigationLink(value: transcription) {
+                        HistoryCellView(
+                            transcription: transcription,
+                            highlightTerms: highlightTerms,
+                            onDelete: { delete(transcription) }
+                        )
+                    }
                 }
-                .buttonStyle(.plain)
-            } else {
-                NavigationLink(value: transcription) {
-                    HistoryCellView(transcription: transcription, highlightTerms: highlightTerms)
+            }
+            .swipeActions(edge: .trailing) {
+                Button(role: .destructive) {
+                    delete(transcription)
+                } label: {
+                    Label(MzL10n.delete, systemImage: "trash")
                 }
             }
         }
+    }
+
+    private func delete(_ transcription: Transcription) {
+        guard let id = transcription.id else { return }
+        try? store.delete(id: id)
+    }
+
+    private func deleteAll() {
+        try? store.deleteAll()
     }
 
     /// En-tête de section : petites capitales espacées, discrètes sur fond
