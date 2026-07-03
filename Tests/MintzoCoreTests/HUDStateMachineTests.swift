@@ -141,6 +141,16 @@ final class HUDStateMachineTests: XCTestCase {
         XCTAssertEqual(HUDLanguage.auto.badgeText, "a\u{2192}", "Auto non résolu : « a→ »")
     }
 
+    func testLanguageBridgesToDictationLanguage() {
+        // Pont badge → langue moteur : auto n'a PAS de langue fixe (détection).
+        XCTAssertEqual(HUDLanguage.eu.dictationLanguage, .basque)
+        XCTAssertEqual(HUDLanguage.fr.dictationLanguage, .french)
+        XCTAssertNil(HUDLanguage.auto.dictationLanguage)
+        // Pont langue moteur → badge (langue détectée affichée en Gorri).
+        XCTAssertEqual(HUDLanguage(.basque), .eu)
+        XCTAssertEqual(HUDLanguage(.french), .fr)
+    }
+
     // MARK: Mapping RMS → hauteur log 3…22 pt (§4.2)
 
     func testWaveformMappingBounds() {
