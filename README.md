@@ -83,6 +83,11 @@ Baita [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) eta
 
 iOS ez dago gaur egungo bide-orrian.
 
+## Egileak
+
+- **Vincent Reboul** — proiektuaren egilekidea
+- **Isaak Elduaien** — proiektuaren egilekidea
+
 ## Lizentzia
 
 MIT — ikus [LICENSE](LICENSE). Exekuzio-garaian deskargatzen diren ereduek nork bere lizentzia dute; zerrenda osoa eta egiaztapen-datuak: [docs/MODELS.md](docs/MODELS.md).

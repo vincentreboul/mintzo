@@ -83,6 +83,11 @@ Ainsi que les bibliothèques Swift [KeyboardShortcuts](https://github.com/sindre
 
 iOS n'est pas dans la feuille de route actuelle.
 
+## Auteurs
+
+- **Vincent Reboul** — co-auteur du projet
+- **Isaak Elduaien** — co-auteur du projet
+
 ## Licence
 
 MIT — voir [LICENSE](LICENSE). Les modèles téléchargés à l'exécution conservent leurs licences respectives ; liste complète et données de vérification : [docs/MODELS.md](docs/MODELS.md).

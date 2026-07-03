@@ -83,6 +83,11 @@ Plus the Swift libraries [KeyboardShortcuts](https://github.com/sindresorhus/Key
 
 iOS is not on the current roadmap.
 
+## Authors
+
+- **Vincent Reboul** — project co-author
+- **Isaak Elduaien** — project co-author
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Models downloaded at runtime keep their own licenses; full list and verification data: [docs/MODELS.md](docs/MODELS.md).
