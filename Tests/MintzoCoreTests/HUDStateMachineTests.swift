@@ -12,12 +12,12 @@ final class HUDStateMachineTests: XCTestCase {
         XCTAssertTrue(HUDState.idle.canTransition(to: .listening))
         XCTAssertTrue(HUDState.listening.canTransition(to: .transcribing))
         XCTAssertTrue(HUDState.transcribing.canTransition(to: .correcting))
-        XCTAssertTrue(HUDState.correcting.canTransition(to: .success))
-        XCTAssertTrue(HUDState.success.canTransition(to: .idle))
+        XCTAssertTrue(HUDState.correcting.canTransition(to: .success(message: nil)))
+        XCTAssertTrue(HUDState.success(message: nil).canTransition(to: .idle))
     }
 
     func testFlowWithoutCorrection() {
-        XCTAssertTrue(HUDState.transcribing.canTransition(to: .success))
+        XCTAssertTrue(HUDState.transcribing.canTransition(to: .success(message: nil)))
     }
 
     func testCancellationsReturnToIdle() {
@@ -36,21 +36,21 @@ final class HUDStateMachineTests: XCTestCase {
     }
 
     func testImmediateRedictationAfterTerminalStates() {
-        XCTAssertTrue(HUDState.success.canTransition(to: .listening))
+        XCTAssertTrue(HUDState.success(message: nil).canTransition(to: .listening))
         XCTAssertTrue(HUDState.error(message: "e").canTransition(to: .listening))
     }
 
     func testForbiddenTransitions() {
         XCTAssertFalse(HUDState.idle.canTransition(to: .transcribing))
-        XCTAssertFalse(HUDState.idle.canTransition(to: .success))
+        XCTAssertFalse(HUDState.idle.canTransition(to: .success(message: nil)))
         XCTAssertFalse(HUDState.idle.canTransition(to: .error(message: "e")))
         XCTAssertFalse(HUDState.listening.canTransition(to: .correcting),
                        "La correction ne peut suivre que la transcription")
-        XCTAssertFalse(HUDState.listening.canTransition(to: .success))
+        XCTAssertFalse(HUDState.listening.canTransition(to: .success(message: nil)))
         XCTAssertFalse(HUDState.correcting.canTransition(to: .transcribing),
                        "Pas de retour en arrière dans le pipeline")
-        XCTAssertFalse(HUDState.success.canTransition(to: .error(message: "e")))
-        XCTAssertFalse(HUDState.success.canTransition(to: .transcribing))
+        XCTAssertFalse(HUDState.success(message: nil).canTransition(to: .error(message: "e")))
+        XCTAssertFalse(HUDState.success(message: nil).canTransition(to: .transcribing))
         XCTAssertFalse(HUDState.listening.canTransition(to: .listening))
     }
 
@@ -61,9 +61,28 @@ final class HUDStateMachineTests: XCTestCase {
         XCTAssertEqual(HUDState.listening.fixedWidth, 208)
         XCTAssertEqual(HUDState.transcribing.fixedWidth, 156)
         XCTAssertEqual(HUDState.correcting.fixedWidth, 156)
-        XCTAssertEqual(HUDState.success.fixedWidth, 112)
+        XCTAssertEqual(HUDState.success(message: nil).fixedWidth, 112)
         XCTAssertNil(HUDState.error(message: "e").fixedWidth, "Erreur : largeur au contenu")
         XCTAssertEqual(HUDState.error(message: "e").maxWidth, 320)
+    }
+
+    // MARK: Succès à message custom (clipboard seul, §4.3 état 4)
+
+    func testSuccessWithCustomMessage() {
+        let clipboard = HUDState.success(message: "Arbelean — sakatu ⌘V")
+        XCTAssertNil(clipboard.fixedWidth, "Message custom : largeur au contenu")
+        XCTAssertEqual(clipboard.maxWidth, 320, "Plafond identique à l'erreur")
+        XCTAssertEqual(HUDState.success(message: nil).maxWidth, 112,
+                       "« Itsatsita » : largeur fixe inchangée")
+        XCTAssertTrue(clipboard.isVisible)
+        XCTAssertFalse(clipboard.isProcessing)
+        // Mêmes transitions que le succès standard.
+        XCTAssertTrue(HUDState.transcribing.canTransition(to: clipboard))
+        XCTAssertTrue(HUDState.correcting.canTransition(to: clipboard))
+        XCTAssertTrue(clipboard.canTransition(to: .idle))
+        XCTAssertTrue(clipboard.canTransition(to: .listening))
+        XCTAssertFalse(HUDState.idle.canTransition(to: clipboard))
+        XCTAssertFalse(HUDState.listening.canTransition(to: clipboard))
     }
 
     func testVisibilityAndProcessingFlags() {
@@ -72,7 +91,7 @@ final class HUDStateMachineTests: XCTestCase {
         XCTAssertTrue(HUDState.transcribing.isProcessing)
         XCTAssertTrue(HUDState.correcting.isProcessing)
         XCTAssertFalse(HUDState.listening.isProcessing)
-        XCTAssertFalse(HUDState.success.isProcessing)
+        XCTAssertFalse(HUDState.success(message: nil).isProcessing)
     }
 
     // MARK: Timer m:ss (§4.2, §3.4)

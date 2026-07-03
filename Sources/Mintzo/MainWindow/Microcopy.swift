@@ -72,6 +72,18 @@ enum MzL10n {
 
     static var queueWaiting: String { t("zain", "en attente", "queued") }
 
+    /// Échec d'un fichier — formes courtes (colonne statut, systemRed §2.3).
+    /// Le détail technique part dans le log, jamais dans la file.
+    static var queueFailed: String {
+        t("transkripzioak huts egin du", "échec de la transcription", "transcription failed")
+    }
+    static var queueNoText: String {
+        t("ez da testurik ezagutu", "aucun texte reconnu", "no text recognized")
+    }
+    static var queueHistoryWriteFailed: String {
+        t("ezin izan da historian gorde", "enregistrement de l'historique impossible", "couldn't save to history")
+    }
+
     static func queueHeader(count: Int) -> String {
         switch current {
         case .eu: count == 1 ? "ilara — fitxategi 1" : "ilara — \(count) fitxategi"

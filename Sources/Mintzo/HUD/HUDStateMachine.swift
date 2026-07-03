@@ -15,24 +15,28 @@ enum HUDState: Equatable, Sendable {
     case listening
     case transcribing
     case correcting
-    case success
+    /// Succès. `message` nil = « Itsatsita » (600 ms) ; message custom
+    /// (ex. clipboard seul « Arbelean — sakatu ⌘V ») = largeur au contenu, 1,5 s.
+    case success(message: String?)
     case error(message: String)
 
-    /// Largeur fixe de la capsule (pt). `nil` = largeur au contenu (erreur) ou masqué (idle).
+    /// Largeur fixe de la capsule (pt). `nil` = largeur au contenu
+    /// (erreur, succès à message custom) ou masqué (idle).
     var fixedWidth: CGFloat? {
         switch self {
         case .idle: nil
         case .listening: 208
         case .transcribing, .correcting: 156
-        case .success: 112
+        case .success(let message): message == nil ? 112 : nil
         case .error: nil
         }
     }
 
-    /// Largeur maximale (erreur : contenu variable plafonné à 320 pt).
+    /// Largeur maximale (contenu variable plafonné à 320 pt).
     var maxWidth: CGFloat {
         switch self {
         case .error: 320
+        case .success(let message) where message != nil: 320
         default: fixedWidth ?? 0
         }
     }
@@ -56,7 +60,7 @@ enum HUDState: Equatable, Sendable {
         case (.correcting, .success): true
         case (.correcting, .error): true
         case (.correcting, .idle): true                   // annulation
-        case (.success, .idle): true                      // auto après 600 ms
+        case (.success, .idle): true                      // auto : 600 ms (1,5 s si message custom)
         case (.success, .listening): true                 // nouvelle dictée immédiate
         case (.error, .idle): true                        // auto après 4 s ou clic
         case (.error, .listening): true                   // nouvelle dictée immédiate

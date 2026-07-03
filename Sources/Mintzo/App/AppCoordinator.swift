@@ -48,6 +48,15 @@ final class AppCoordinator {
     @ObservationIgnored private var openSettingsWindowAction: () -> Void = {}
     @ObservationIgnored private var bootstrapped = false
 
+    /// Onglet sélectionné de la fenêtre Réglages (liaison `SettingsRootView`).
+    var settingsTab: SettingsTab = .orokorra
+
+    /// Destination du clic sur la capsule d'erreur (§4.3 état 5) : la fenêtre
+    /// principale par défaut ; Réglages > Ereduak quand le modèle manque
+    /// (c'est là que vit le bouton Deskargatu).
+    enum HUDErrorDestination { case mainWindow, modelSettings }
+    @ObservationIgnored private var hudErrorDestination: HUDErrorDestination = .mainWindow
+
     // MARK: État menu bar
 
     /// Bascule de langue hors session : le glyphe menu bar affiche « eu »/« fr » 1 s (§5.2).
@@ -183,12 +192,19 @@ final class AppCoordinator {
         flow.onLevel = { [weak self] rms in self?.hud.ingest(rms: Double(rms)) }
         flow.onOutcome = { [weak self] outcome in self?.handleOutcome(outcome) }
 
-        // Clic capsule pendant l'écoute = stop (§4.1) ; clic erreur = fenêtre principale.
+        // Clic capsule pendant l'écoute = stop (§4.1) ; clic erreur = détail :
+        // fenêtre principale, ou Réglages > Ereduak si le modèle manque.
         hud.onStopRequested = { [weak self] in
             guard let self else { return }
             self.flow.handle(.pressEnded, language: self.dictationLanguage)
         }
-        hud.onErrorTapped = { [weak self] in self?.openMainWindow() }
+        hud.onErrorTapped = { [weak self] in
+            guard let self else { return }
+            switch self.hudErrorDestination {
+            case .mainWindow: self.openMainWindow()
+            case .modelSettings: self.openSettingsWindow(tab: .ereduak)
+            }
+        }
     }
 
     /// Langue de dictée effective (le badge V1 cycle eu → fr ; auto coercé).
@@ -214,17 +230,17 @@ final class AppCoordinator {
     private func handleOutcome(_ outcome: DictationFlow.Outcome) {
         switch outcome {
         case .inserted:
-            hud.transition(to: .success)
+            hud.transition(to: .success(message: nil))
         case .clipboardOnly:
-            // Seul l'état erreur du HUD porte un message custom — utilisé ici pour
-            // l'info « ⌘V » (limite d'API HUD notée au rapport, pas un échec réel).
-            showHUDError(AppStrings.textOnClipboard)
+            // Mode « clipboard seul » (réglage ou repli) : un succès, pas une
+            // erreur — message custom « Arbelean — sakatu ⌘V », tenu 1,5 s.
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
         case .cancelled:
             hud.transition(to: .idle)
         case .failed(let failure):
             switch failure {
             case .modelMissing(let language):
-                showHUDError(AppStrings.modelMissing(for: language))
+                showHUDError(AppStrings.modelMissing(for: language), destination: .modelSettings)
             case .microphonePermissionDenied:
                 showHUDError(AppStrings.microphoneNeeded)
             case .captureFailed:
@@ -238,7 +254,8 @@ final class AppCoordinator {
 
     /// La machine HUD n'a pas de transition idle → erreur : les erreurs pré-écoute
     /// (modèle absent, permission) passent par l'état armé le temps d'un tour (§4.3).
-    private func showHUDError(_ message: String) {
+    private func showHUDError(_ message: String, destination: HUDErrorDestination = .mainWindow) {
+        hudErrorDestination = destination
         if hud.state == .idle {
             hud.transition(to: .listening)
         }
@@ -356,6 +373,14 @@ final class AppCoordinator {
     func openSettingsWindow() {
         openSettingsWindowAction()
         NSApp.activate()
+    }
+
+    /// Ouvre les Réglages directement sur un onglet (la scène `Settings` est
+    /// ouverte via `openSettings()` macOS 14+, l'onglet via le binding
+    /// `settingsTab` de `SettingsRootView` — pas de sélecteur privé).
+    func openSettingsWindow(tab: SettingsTab) {
+        settingsTab = tab
+        openSettingsWindow()
     }
 
     // MARK: - Fichiers (drop fenêtre, NSOpenPanel menu bar)
@@ -553,7 +578,10 @@ final class AppCoordinator {
             hud.transition(to: .correcting)
         case "success":
             hud.transition(to: .transcribing)
-            hud.transition(to: .success)
+            hud.transition(to: .success(message: nil))
+        case "success-clipboard":
+            hud.transition(to: .transcribing)
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess))
         case "error":
             hud.transition(to: .error(message: "Euskarazko eredua falta da."))
         default:
@@ -571,7 +599,12 @@ final class AppCoordinator {
             try? await Task.sleep(for: dwell)
             hud.transition(to: .correcting)
             try? await Task.sleep(for: dwell)
-            hud.transition(to: .success)          // auto-dismiss 600 ms → idle
+            hud.transition(to: .success(message: nil))   // auto-dismiss 600 ms → idle
+            try? await Task.sleep(for: dwell)
+            hud.transition(to: .listening)
+            try? await Task.sleep(for: dwell)
+            hud.transition(to: .transcribing)
+            hud.transition(to: .success(message: AppStrings.clipboardSuccess)) // 1,5 s → idle
             try? await Task.sleep(for: dwell)
             hud.transition(to: .listening)
             try? await Task.sleep(for: dwell)
@@ -615,9 +648,14 @@ final class AppCoordinator {
                 hud.transition(to: .correcting)
                 try? await Task.sleep(for: .milliseconds(500))
                 shoot("correcting")
-                hud.transition(to: .success)
+                hud.transition(to: .success(message: nil))
                 try? await Task.sleep(for: .milliseconds(800))
                 shoot("success")
+                hud.transition(to: .listening)
+                hud.transition(to: .transcribing)
+                hud.transition(to: .success(message: AppStrings.clipboardSuccess))
+                try? await Task.sleep(for: .milliseconds(800))
+                shoot("success-clipboard")
                 hud.transition(to: .listening)
                 hud.transition(to: .error(message: "Euskarazko eredua falta da."))
                 try? await Task.sleep(for: .milliseconds(800))

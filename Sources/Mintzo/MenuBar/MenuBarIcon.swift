@@ -23,16 +23,7 @@ enum MenuBarGlyph {
     static let processingPulseDuration: TimeInterval = 1.6
     static let languageFlashDuration: TimeInterval = 1.0
 
-    // MARK: Couleurs NSColor (miroir de MzColor — à remonter au DesignSystem si NSColor requis ailleurs)
-
-    static let gorriNSColor = NSColor(name: nil) { appearance in
-        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            ? NSColor(mzHex: "D96A5B") : NSColor(mzHex: "9B2D23")
-    }
-    static let gorriBiziNSColor = NSColor(name: nil) { appearance in
-        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            ? NSColor(mzHex: "E87A66") : NSColor(mzHex: "B5382B")
-    }
+    // Couleurs : MzNSColor.gorri / .gorriBizi (DesignSystem) — plus de miroir local.
 
     // MARK: Images (cachées — jamais recalculées par frame)
 
@@ -41,7 +32,7 @@ enum MenuBarGlyph {
 
     /// Enregistrement : barres teintées GorriBizi animées, caret en labelColor.
     static let recordingFrames: [NSImage] = recordingHeights.map { heights in
-        draw(template: false, barHeights: heights, barColor: gorriBiziNSColor)
+        draw(template: false, barHeights: heights, barColor: MzNSColor.gorriBizi)
     }
 
     /// Traitement : glyphe + point 3 pt Gorri sous le caret, pulse 1,6 s (8 frames cachées).
@@ -84,7 +75,7 @@ enum MenuBarGlyph {
             capsule(cx: 16.5, cy: 9, width: 2, height: barHeights.outer, color: waveColor)
 
             if let dotAlpha {
-                gorriNSColor.withAlphaComponent(dotAlpha).setFill()
+                MzNSColor.gorri.withAlphaComponent(dotAlpha).setFill()
                 NSBezierPath(ovalIn: NSRect(x: 7.5, y: 0, width: 3, height: 3)).fill()      // point sous le caret
             }
             if withErrorBadge {

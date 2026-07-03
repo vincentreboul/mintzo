@@ -15,6 +15,10 @@ struct MenuBarPopoverView: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
 
+    /// V1 : l'auto-détection n'est pas exposée (le coordinator coerce auto → eu).
+    /// Le segmented n'offre donc que eu / fr — cohérent avec le cycle du HUD.
+    private static let selectableLanguages = HUDLanguage.allCases.filter { $0 != .auto }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Ligne d'état : langue + modèle chargé (11 pt secondaire).
@@ -24,7 +28,7 @@ struct MenuBarPopoverView: View {
                 .padding(.horizontal, 6)
 
             Picker(selection: $model.language) {
-                ForEach(HUDLanguage.allCases, id: \.self) { language in
+                ForEach(Self.selectableLanguages, id: \.self) { language in
                     Text(language.rawValue).tag(language)
                 }
             } label: {
