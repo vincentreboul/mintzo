@@ -91,8 +91,9 @@ struct HUDContentView: View {
                     .strokeBorder(hairlineColor, lineWidth: HUDLayout.hairlineWidth)
             }
             .compositingGroup()
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.20),
-                    radius: 12, x: 0, y: 8)
+            .shadow(color: .black.opacity(colorScheme == .dark
+                        ? MzHUD.shadowOpacityDark : MzHUD.shadowOpacityLight),
+                    radius: MzHUD.shadowBlur / 2, x: 0, y: MzHUD.shadowY)
             // Halo APRÈS l'ombre (pas d'ombre teintée) mais dessiné derrière la capsule ;
             // .background propose la taille de la capsule, le flou déborde librement.
             .background { listeningHalo }
@@ -278,7 +279,7 @@ struct HUDContentView: View {
         if case .error = displayedState {
             return Color(nsColor: .systemRed).opacity(0.40)
         }
-        return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+        return MzColor.hudHairline
     }
 
     /// Halo d'écoute : capsule `MzGorriBizi` floutée derrière la capsule,

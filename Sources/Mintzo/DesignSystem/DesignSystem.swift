@@ -19,6 +19,9 @@ enum MzColor {
     /// Accent enregistrement live (waveform, halo).
     static let gorriBizi = dynamic("B5382B", "E87A66")
     static let success = dynamic("3E7A4E", "86C29A")
+    /// Hairline de la capsule HUD sur verre (§4.1) — noir 8 % light / blanc 12 % dark.
+    /// Distinct de `hairline` (encre sur papier) : ici un liseré neutre sur matériau.
+    static let hudHairline = dynamic("000000", "FFFFFF", lightAlpha: 0.08, darkAlpha: 0.12)
     // Erreur / avertissement : systemRed / systemOrange (système, ne pas redéfinir).
 
     private static func dynamic(_ light: String, _ dark: String,
@@ -27,6 +30,21 @@ enum MzColor {
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
             return NSColor(mzHex: isDark ? dark : light, alpha: isDark ? darkAlpha : lightAlpha)
         })
+    }
+}
+
+/// Variantes NSColor dynamiques des accents (§2.3) — pour le dessin AppKit
+/// (icône menu bar, NSBezierPath). Mêmes hex que `MzColor` : toute retouche
+/// de teinte se fait ici ET dans MzColor, jamais en local dans une vue.
+enum MzNSColor {
+    static let gorri = dynamic("9B2D23", "D96A5B")
+    static let gorriBizi = dynamic("B5382B", "E87A66")
+
+    private static func dynamic(_ light: String, _ dark: String) -> NSColor {
+        NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                ? NSColor(mzHex: dark) : NSColor(mzHex: light)
+        }
     }
 }
 
@@ -116,6 +134,11 @@ enum MzHUD {
     static let widthProcessing: CGFloat = 156
     static let widthSuccess: CGFloat = 112
     static let widthErrorMax: CGFloat = 320
+    // Ombre de la capsule (§4.1 : y 8, blur 24 — blur CSS = 2 × radius SwiftUI)
+    static let shadowY: CGFloat = 8
+    static let shadowBlur: CGFloat = 24
+    static let shadowOpacityLight: Double = 0.20
+    static let shadowOpacityDark: Double = 0.35
     // Waveform sismographe
     static let waveformBarCount = 26
     static let waveformBarWidth: CGFloat = 2
