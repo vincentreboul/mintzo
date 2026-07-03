@@ -68,7 +68,7 @@ enum MzL10n {
           "No transcriptions yet")
     }
     static var emptyTitle: String {
-        t("Sakatu Fn eta hitz egin.", "Appuyez sur Fn et parlez.", "Press Fn and speak.")
+        t("Sakatu Diktatu eta hitz egin.", "Cliquez sur Dicter et parlez.", "Click Dictate and speak.")
     }
     static var emptySubtitle: String {
         t("edo arrastatu audio-fitxategi bat hona",

@@ -13,7 +13,7 @@ public enum PermissionStatus: Sendable, Equatable {
 public struct PermissionsSnapshot: Sendable, Equatable {
     /// Microphone (capture). `notDetermined` = jamais demandée.
     public let microphone: PermissionStatus
-    /// Accessibilité (collage simulé + touche Fn). L'API système ne distingue
+    /// Accessibilité (collage simulé au curseur). L'API système ne distingue
     /// pas « jamais demandée » de « refusée » : jamais `.notDetermined`.
     public let accessibility: PermissionStatus
 

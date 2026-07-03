@@ -26,12 +26,6 @@ final class LanguageCycleHotkeyAttackTests: XCTestCase {
         }
     }
 
-    /// Source Fn indisponible (Accessibility absente) — isole la voie raccourci.
-    private final class NullFnSource: FnKeyEventSource {
-        func start() -> AsyncStream<FnKeyTransition>? { nil }
-        func stop() {}
-    }
-
     @MainActor
     private final class Counter {
         private(set) var count = 0
@@ -293,12 +287,12 @@ final class LanguageCycleHotkeyAttackTests: XCTestCase {
 
     func testHotkeyServiceDoubleStartKeepsSingleShortcutPump() async {
         let source = MultiSessionSource()
-        let service = HotkeyService(shortcutSource: source, fnSource: NullFnSource())
+        let service = HotkeyService(shortcutSource: source)
         let first = EventCollector()
         let second = EventCollector()
 
-        first.attach(service.start(configuration: .init(activationMode: .pushToTalk, fnKeyEnabled: false)))
-        second.attach(service.start(configuration: .init(activationMode: .pushToTalk, fnKeyEnabled: false)))
+        first.attach(service.start(configuration: .init(activationMode: .pushToTalk)))
+        second.attach(service.start(configuration: .init(activationMode: .pushToTalk)))
         defer {
             service.stop()
             first.cancel()

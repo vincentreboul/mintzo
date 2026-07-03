@@ -51,16 +51,6 @@ enum SettingsStrings {
              "L'enregistrement dure tant que le raccourci est maintenu ; le relâcher transcrit.",
              "Recording lasts while the shortcut is held; releasing it transcribes.")
     }
-    static var fnToggle: String {
-        pick("Fn tekla sakatuta diktatu",
-             "Dicter en maintenant la touche Fn",
-             "Dictate by holding the Fn key")
-    }
-    static var fnPermissionNote: String {
-        pick("Fn teklak Irisgarritasuna baimena behar du. Teklatua ez da inoiz grabatzen.",
-             "La touche Fn requiert l'autorisation Accessibilité. Le clavier n'est jamais enregistré.",
-             "The Fn key requires the Accessibility permission. The keyboard is never recorded.")
-    }
     static var accessibilityGranted: String {
         pick("Irisgarritasuna: emanda", "Accessibilité : accordée", "Accessibility: granted")
     }

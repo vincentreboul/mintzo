@@ -2,13 +2,12 @@ import SwiftUI
 import KeyboardShortcuts
 import MintzoCore
 
-/// Onglet Orokorra : langue par défaut, raccourci de dictée, touche Fn
-/// (avec état de la permission Accessibilité + deep-link), mode d'insertion,
-/// ouverture à l'ouverture de session.
+/// Onglet Orokorra : langue par défaut, raccourci de dictée, insertion au
+/// curseur (avec état de la permission Accessibilité + deep-link), présence,
+/// apparence, ouverture à l'ouverture de session.
 struct OrokorraSettingsView: View {
     @Bindable var coordinator: AppCoordinator
 
-    @State private var fnEnabled = AppSettings.fnKeyEnabled
     @State private var shortcutBehavior = AppSettings.shortcutBehavior
     @State private var autoInsert = AppSettings.autoInsert
     @State private var permissions: PermissionsSnapshot?
@@ -35,8 +34,7 @@ struct OrokorraSettingsView: View {
 
                 KeyboardShortcuts.Recorder(SettingsStrings.shortcutLabel, name: .dictation)
 
-                // Appui simple (défaut, façon SuperWhisper) ou maintien —
-                // ne concerne que le raccourci : la touche Fn reste un maintien.
+                // Appui simple (défaut, façon SuperWhisper) ou maintien.
                 Picker(SettingsStrings.shortcutBehaviorLabel, selection: $shortcutBehavior) {
                     Text(SettingsStrings.shortcutBehaviorPressOnce)
                         .tag(AppSettings.ShortcutBehavior.pressOnce)
@@ -52,19 +50,13 @@ struct OrokorraSettingsView: View {
                     .foregroundStyle(MzColor.inkSecondary)
             }
 
-            Section {
-                Toggle(SettingsStrings.fnToggle, isOn: $fnEnabled)
-                if fnEnabled {
-                    accessibilityStatusRow
-                }
-            } footer: {
-                Text(SettingsStrings.fnPermissionNote)
-                    .font(.system(size: 11))
-                    .foregroundStyle(MzColor.inkSecondary)
-            }
-
+            // Insertion au curseur : seule fonction qui requiert l'Accessibilité.
+            // Off = presse-papier seul (aucune permission).
             Section {
                 Toggle(SettingsStrings.autoInsertToggle, isOn: $autoInsert)
+                if autoInsert {
+                    accessibilityStatusRow
+                }
             } footer: {
                 Text(SettingsStrings.autoInsertNote)
                     .font(.system(size: 11))
@@ -104,10 +96,6 @@ struct OrokorraSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(height: 620)
-        .onChange(of: fnEnabled) { _, newValue in
-            AppSettings.fnKeyEnabled = newValue
-            coordinator.hotkeySettingsChanged()
-        }
         .onChange(of: shortcutBehavior) { _, newValue in
             AppSettings.shortcutBehavior = newValue
             coordinator.hotkeySettingsChanged()

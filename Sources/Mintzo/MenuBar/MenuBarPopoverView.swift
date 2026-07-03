@@ -38,7 +38,7 @@ struct MenuBarPopoverView: View {
             .controlSize(.small)
 
             VStack(alignment: .leading, spacing: 2) {
-                PopoverRow(title: MzStrings.dictate, shortcut: "Fn") {
+                PopoverRow(title: MzStrings.dictate, shortcut: "⌥Space") {
                     dismiss()
                     NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
                 }

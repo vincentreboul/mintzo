@@ -13,9 +13,8 @@ enum AppSettings {
         /// Langue de repli du mode auto (confiance faible, modèle de détection
         /// absent) — dernière langue explicite choisie par l'utilisateur.
         static let fallbackLanguage = "mintzo.fallbackLanguage"
-        static let fnKeyEnabled = "mintzo.fnKeyEnabled"
         /// Comportement du raccourci de dictée : appui simple (toggle) ou
-        /// maintien (push-to-talk). La touche Fn reste TOUJOURS en maintien.
+        /// maintien (push-to-talk).
         static let shortcutBehavior = "mintzo.shortcutBehavior"
         /// `true` = insertion au curseur ; `false` = clipboard seul.
         static let autoInsert = "mintzo.autoInsert"
@@ -31,7 +30,7 @@ enum AppSettings {
 
     /// Comportement du raccourci de dictée configurable (retour client :
     /// « comme SuperWhisper — j'appuie une fois, ça lance, je rappuie pour
-    /// arrêter »). Ne concerne PAS la touche Fn, qui est un maintien par nature.
+    /// arrêter »).
     enum ShortcutBehavior: String, CaseIterable {
         /// Appui simple : un appui démarre, le suivant stoppe et transcrit.
         case pressOnce
@@ -51,7 +50,6 @@ enum AppSettings {
             // Défaut usine : auto — la langue est détectée à la dictée (eu/fr).
             Key.language: "auto",
             Key.fallbackLanguage: Language.basque.rawValue,
-            Key.fnKeyEnabled: true,
             // Défaut usine : appui simple (préférence explicite du client).
             Key.shortcutBehavior: ShortcutBehavior.pressOnce.rawValue,
             Key.autoInsert: true,
@@ -75,11 +73,6 @@ enum AppSettings {
             return raw.flatMap(Language.init(rawValue:)) ?? .basque
         }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: Key.fallbackLanguage) }
-    }
-
-    static var fnKeyEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: Key.fnKeyEnabled) }
-        set { UserDefaults.standard.set(newValue, forKey: Key.fnKeyEnabled) }
     }
 
     static var shortcutBehavior: ShortcutBehavior {

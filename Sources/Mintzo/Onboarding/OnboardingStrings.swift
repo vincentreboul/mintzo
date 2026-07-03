@@ -39,9 +39,9 @@ enum OnboardingStrings {
     }
 
     static var promiseDictation: String {
-        pick("Sakatu Fn eta hitz egin — testua kurtsorean agertzen da, edozein aplikaziotan.",
-             "Appuyez sur Fn et parlez — le texte apparaît au curseur, dans n'importe quelle application.",
-             "Press Fn and speak — text appears at your cursor, in any app.")
+        pick("Sakatu zure lasterbidea eta hitz egin — testua kurtsorean agertzen da, edozein aplikaziotan.",
+             "Un raccourci, vous parlez — le texte apparaît au curseur, dans n'importe quelle application.",
+             "One shortcut, you speak — text appears at your cursor, in any app.")
     }
     static var promiseFiles: String {
         pick("Arrastatu WhatsApp-eko ahots-mezu bat edo beste edozein audio: testu bihurtuko da.",
@@ -81,9 +81,9 @@ enum OnboardingStrings {
     }
     static var accessibilityOptionalBadge: String { pick("aukerakoa", "optionnelle", "optional") }
     static var accessibilityBody: String {
-        pick("Diktatutako testua kurtsorean itsasteko eta Fn tekla antzemateko. Mintzok ez du beste ezer irakurtzen; ezer ez da zure Mac-etik ateratzen.",
-             "Sert à coller le texte dicté au curseur et à détecter la touche Fn. Mintzo ne lit rien d'autre, et rien ne sort de votre Mac.",
-             "Used to paste dictated text at the cursor and to detect the Fn key. Mintzo reads nothing else, and nothing leaves your Mac.")
+        pick("Diktatutako testua kurtsorean itsasteko. Mintzok ez du beste ezer irakurtzen; ezer ez da zure Mac-etik ateratzen.",
+             "Sert à coller le texte dicté au curseur. Mintzo ne lit rien d'autre, et rien ne sort de votre Mac.",
+             "Used to paste dictated text at the cursor. Mintzo reads nothing else, and nothing leaves your Mac.")
     }
     /// L'alternative honnête, sans dramatiser : on peut vivre sans.
     static var accessibilityWithout: String {

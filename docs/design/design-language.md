@@ -173,7 +173,7 @@ Une **capsule** flottante bas-centre. Personnalité : un instrument de mesure ca
 
 Morphing de largeur entre états : spring `response 0.32, damping 0.8` — le contenu sortant fade-out 120 ms AVANT le resize, le contenu entrant fade-in 160 ms après ; jamais deux textes visibles simultanément.
 
-En **hold-to-talk**, le relâchement de la touche déclenche directement 1→2. En mode toggle, re-hotkey ou clic capsule.
+En mode **maintien** (push-to-talk sur le raccourci), le relâchement de la touche déclenche directement 1→2. En mode **appui simple** (toggle, défaut), re-appui du raccourci ou clic capsule.
 
 ### 4.4 Bascule de langue
 
@@ -263,7 +263,7 @@ Un **journal composé**, pas une liste de logs : le texte dicté (serif) est le 
 - **Recherche** : `.searchable` natif toolbar ; résultats = mêmes cellules, occurrences surlignées `MzGorri` 24 % ; état vide de recherche : « Ez da emaitzarik » 13 pt `MzInkSecondary`, centré, sans illustration.
 - **File d'attente** : section épinglée en tête, visible seulement si active. Par item : nom de fichier SF 13 Medium, barre de progression **2 pt** pleine largeur `MzGorri` (rail `MzHairline`), état à droite (« zain » = en attente, durée détectée, langue). Terminée → l'item glisse dans « Gaur » (cf. motion §7).
 - **Drop** : fenêtre entière. Au drag-over : overlay glass (`.glassEffect` / fallback `MzPaper` 92 %) inset 12 pt rayon 14 pt, **bordure dashed 1.5 pt `MzGorri`** (dash 6/4), au centre SF Symbol `arrow.down.doc` 28 pt `MzGorri` + « Askatu hemen transkribatzeko » 15 pt Medium. Apparition 180 ms.
-- **État vide (première ouverture)** : moment éditorial — au centre optique (45 % hauteur) : « Sakatu Fn eta hitz egin. » en **New York 22/30 Regular `MzInk`**, dessous « edo arrastatu audio-fitxategi bat hona » 13 pt `MzInkSecondary`. Rien d'autre. Aucune illustration, aucun blob.
+- **État vide (première ouverture)** : moment éditorial — au centre optique (45 % hauteur) : « Sakatu Diktatu eta hitz egin. » en **New York 22/30 Regular `MzInk`**, dessous « edo arrastatu audio-fitxategi bat hona » 13 pt `MzInkSecondary`. Rien d'autre. Aucune illustration, aucun blob.
 - **Ce qui la rend éditoriale** (vs liste générique) : papier chaud au lieu de blanc bleuté ; serif pour le contenu ; dates en petites capitales espacées comme des folios ; hairlines 0.5 pt au lieu de bordures 1 px grises ; actions cachées jusqu'au hover ; densité aérée mais alignements stricts sur grille 4 pt.
 
 ---
@@ -326,7 +326,7 @@ Direction (format Icon Composer, variantes light/dark/tinted obligatoires — si
 | Permission micro (onboarding, titre + corps) | Mikrofonoa behar dugu. — Mintzok mikrofonoa erabiltzen du zure ahotsa entzuteko. Audioa zure Mac-ean prozesatzen da, eta ez da inoiz hemendik aterako. | Le micro est nécessaire. — Mintzo utilise le micro pour entendre votre voix. L'audio est traité sur votre Mac et n'en sort jamais. | Microphone needed. — Mintzo uses the microphone to hear your voice. Audio is processed on your Mac and never leaves it. |
 | Erreur modèle manquant (HUD + fenêtre) | Euskarazko eredua falta da. Deskargatu behin, erabili betiko — konexiorik gabe. [Deskargatu (1,6 GB)] | Le modèle basque n'est pas installé. Téléchargez-le une fois, utilisez-le pour toujours — sans connexion. [Télécharger (1,6 Go)] | The Basque model isn't installed. Download it once, use it forever — no connection needed. [Download (1.6 GB)] |
 
-Autres chaînes canoniques déjà fixées dans ce document : « Transkribatzen… » (transcription), « Itsatsita » / « Inséré » / « Inserted » (succès), « Askatu hemen transkribatzeko » / « Déposez ici pour transcrire » / « Drop here to transcribe », « Sakatu Fn eta hitz egin. » / « Appuyez sur Fn et parlez. » / « Press Fn and speak. », « zain » / « en attente » / « queued », « jatorrizkoa / zuzendua » / « original / corrigé » / « original / corrected ».
+Autres chaînes canoniques déjà fixées dans ce document : « Transkribatzen… » (transcription), « Itsatsita » / « Inséré » / « Inserted » (succès), « Askatu hemen transkribatzeko » / « Déposez ici pour transcrire » / « Drop here to transcribe », « Sakatu Diktatu eta hitz egin. » / « Cliquez sur Dicter et parlez. » / « Click Dictate and speak. », « zain » / « en attente » / « queued », « jatorrizkoa / zuzendua » / « original / corrigé » / « original / corrected ».
 
 ### 9.3 SF Symbols canoniques (rappel : jamais d'emoji)
 
