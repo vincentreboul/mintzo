@@ -13,6 +13,8 @@ enum SettingsTab: Hashable {
 /// `Settings` est ouverte via `openSettings()` (macOS 14+), l'onglet via ce binding.
 struct SettingsRootView: View {
     @Bindable var coordinator: AppCoordinator
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         TabView(selection: $coordinator.settingsTab) {
@@ -27,5 +29,14 @@ struct SettingsRootView: View {
                 .tag(SettingsTab.zuzenketa)
         }
         .frame(width: 500)
+        .onAppear {
+            // Vue-ancre de secours pour le pont openWindow : en mode « Dock
+            // seul », aucun label de menu bar n'existe pour le câbler.
+            coordinator.attachWindowActions(
+                openMainWindow: { openWindow(id: WindowSceneID.main) },
+                openSettings: { openSettings() }
+            )
+            AppDelegate.shared?.attachOpenWindow { openWindow(id: $0) }
+        }
     }
 }

@@ -42,11 +42,16 @@ final class AppCoordinator {
     /// Bibliothèque de modèles (onglet Ereduak) : whisper eu/fr/tiny + Latxa.
     let modelLibrary: ModelLibraryController
 
+    /// Présence de l'app (barre de menus / Dock / les deux) — réglable à chaud
+    /// dans Orokorra, appliquée au lancement par l'AppDelegate.
+    let presence = AppPresenceService()
+
     // MARK: Actions fenêtres (injectées par la scène au premier rendu)
 
     @ObservationIgnored private var openMainWindowAction: () -> Void = {}
     @ObservationIgnored private var openSettingsWindowAction: () -> Void = {}
-    @ObservationIgnored private var bootstrapped = false
+    @ObservationIgnored private var servicesStarted = false
+    @ObservationIgnored private var windowActionsAttached = false
 
     /// Onglet sélectionné de la fenêtre Réglages (liaison `SettingsRootView`).
     var settingsTab: SettingsTab = .orokorra
@@ -137,14 +142,32 @@ final class AppCoordinator {
         return fallback
     }
 
-    /// Démarre les services réels. Appelé une fois par la scène (label menu bar)
-    /// qui fournit les actions d'ouverture de fenêtres. Inactif en mode preview /
-    /// snapshots DEBUG : ces harnais simulent le moteur, pas question d'ouvrir le micro.
+    /// Point d'entrée historique de la première vue rendue (label menu bar) :
+    /// câble les fenêtres puis démarre les services. Chaque moitié est
+    /// idempotente — l'AppDelegate démarre aussi les services au lancement.
     func bootstrap(openMainWindow: @escaping () -> Void, openSettings: @escaping () -> Void) {
-        guard !bootstrapped else { return }
-        bootstrapped = true
+        attachWindowActions(openMainWindow: openMainWindow, openSettings: openSettings)
+        startServices()
+    }
+
+    /// Câble les ouvertures de fenêtres SwiftUI (`openWindow` / `openSettings`,
+    /// lisibles uniquement depuis une vue) — première vue rendue gagnante :
+    /// label du menu bar, ou Réglages en mode « Dock seul ».
+    func attachWindowActions(openMainWindow: @escaping () -> Void, openSettings: @escaping () -> Void) {
+        guard !windowActionsAttached else { return }
+        windowActionsAttached = true
         openMainWindowAction = openMainWindow
         openSettingsWindowAction = openSettings
+    }
+
+    /// Démarre les services réels (hotkeys, flow, file, notifications). Appelé
+    /// par l'AppDelegate au lancement — indépendant de toute vue : en mode
+    /// « Dock seul », aucun label de menu bar n'existe, la dictée doit vivre
+    /// quand même. Inactif en mode preview / snapshots DEBUG : ces harnais
+    /// simulent le moteur, pas question d'ouvrir le micro.
+    func startServices() {
+        guard !servicesStarted else { return }
+        servicesStarted = true
 
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
@@ -284,7 +307,7 @@ final class AppCoordinator {
 
     /// À appeler quand le réglage « touche Fn » change — remplace la session hotkey.
     func hotkeySettingsChanged() {
-        guard bootstrapped else { return }
+        guard servicesStarted else { return }
         startHotkeyPump()
     }
 
@@ -508,7 +531,7 @@ final class AppCoordinator {
 
     private func updateIconAnimation() {
         let interval: TimeInterval? = switch menuBarState {
-        case .recording: MenuBarGlyph.recordingFrameInterval               // cycle 900 ms / 3 frames
+        case .recording: MenuBarGlyph.recordingFrameInterval               // respiration 1,8 s / 6 frames
         case .processing: MenuBarGlyph.processingPulseDuration / 8         // pulse 1,6 s / 8 frames
         case .idle, .error: nil
         }
@@ -688,14 +711,14 @@ final class AppCoordinator {
 
     /// Glyphes menu bar rasterisés à 4× sur fond simulé menu bar (light + dark).
     private func snapshotMenuBarGlyphs(to dir: URL) {
-        let variants: [(String, NSImage)] = [
+        var variants: [(String, NSImage)] = [
             ("idle", MenuBarGlyph.idle),
-            ("recording-f0", MenuBarGlyph.recordingFrames[0]),
-            ("recording-f1", MenuBarGlyph.recordingFrames[1]),
-            ("recording-f2", MenuBarGlyph.recordingFrames[2]),
             ("processing", MenuBarGlyph.processingFrames[2]),
             ("error", MenuBarGlyph.error),
         ]
+        for (index, frame) in MenuBarGlyph.recordingFrames.enumerated() {
+            variants.append(("recording-f\(index)", frame))
+        }
         for appearanceName in ["light", "dark"] {
             guard let appearance = NSAppearance(
                 named: appearanceName == "dark" ? .darkAqua : .aqua
