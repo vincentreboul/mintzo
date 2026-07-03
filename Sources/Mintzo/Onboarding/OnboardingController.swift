@@ -22,12 +22,20 @@ final class OnboardingController {
 
     // MARK: Modèle (écran 3)
 
-    /// Langue de dictée par défaut — présélection : eu si le système est en eu,
-    /// fr si le système est en fr, sinon eu (Mintzo est d'abord basque).
+    /// Langue du MODÈLE à télécharger (écran 3) — présélection : eu si le
+    /// système est en eu, fr si le système est en fr, sinon eu (Mintzo est
+    /// d'abord basque). Ne touche PAS au mode de langue de l'app (auto par
+    /// défaut) : elle alimente la langue de REPLI du mode auto.
+    ///
+    /// Régression historique : `init` écrivait `coordinator.language` — or
+    /// SwiftUI évalue la closure de contenu de `Window` à CHAQUE construction
+    /// du scene graph, même fenêtre jamais présentée (gate fermé). Résultat :
+    /// chaque lancement écrasait la langue choisie par la langue système.
+    /// Invariant : la construction de ce contrôleur est SANS effet de bord.
     var selectedLanguage: HUDLanguage {
         didSet {
             guard selectedLanguage != oldValue else { return }
-            coordinator.language = selectedLanguage
+            AppSettings.fallbackLanguage = selectedLanguage == .fr ? .french : .basque
         }
     }
 
@@ -51,8 +59,9 @@ final class OnboardingController {
     init(coordinator: AppCoordinator) {
         self.coordinator = coordinator
         self.permissions = coordinator.permissions.snapshot()
+        // Présélection locale UNIQUEMENT — aucun effet de bord ici (cf. doc
+        // de `selectedLanguage` : cet init s'exécute à chaque scene graph).
         self.selectedLanguage = MzStrings.ui == .fr ? .fr : .eu
-        coordinator.language = selectedLanguage
     }
 
     // MARK: - Cycle de vie
@@ -90,7 +99,10 @@ final class OnboardingController {
 
     /// « Amaitu » : marque l'onboarding terminé — la fenêtre ne se représentera
     /// plus au lancement. La fermeture est du ressort de la vue (dismiss).
+    /// Le choix de modèle (même jamais touché : présélection système) devient
+    /// la langue de repli du mode auto — action utilisateur explicite, ici oui.
     func finish() {
+        AppSettings.fallbackLanguage = selectedLanguage == .fr ? .french : .basque
         OnboardingGate.markCompleted()
     }
 
