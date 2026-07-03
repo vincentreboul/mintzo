@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Observation
+import UniformTypeIdentifiers
 import MintzoCore
 
 /// `MenuBarPopoverView` (vague 2) référence le modèle sous ce nom — conservé.
@@ -35,6 +36,9 @@ final class AppCoordinator {
     @ObservationIgnored private(set) var flow: DictationFlow!
     @ObservationIgnored private var latxaLoader: LatxaEngineLoader?
 
+    /// File d'affichage des transcriptions de fichiers (fenêtre principale §6.3).
+    let fileQueue: FileTranscriptionQueue
+
     // MARK: Actions fenêtres (injectées par la scène au premier rendu)
 
     @ObservationIgnored private var openMainWindowAction: () -> Void = {}
@@ -47,22 +51,29 @@ final class AppCoordinator {
     private(set) var languageFlash: HUDLanguage?
     /// Frame courante des animations de l'icône menu bar (cycle 900 ms / pulse 1,6 s).
     private(set) var menuBarFrame = 0
+    /// Échec d'un fichier de la file : badge erreur temporaire sur l'icône (§5.2).
+    private(set) var fileErrorFlash = false
     @ObservationIgnored private var iconAnimationInterval: TimeInterval?
     @ObservationIgnored private var iconAnimationTask: Task<Void, Never>?
     @ObservationIgnored private var flashTask: Task<Void, Never>?
+    @ObservationIgnored private var fileErrorTask: Task<Void, Never>?
     @ObservationIgnored private var hotkeyTask: Task<Void, Never>?
+    @ObservationIgnored private var notificationTasks: [Task<Void, Never>] = []
     @ObservationIgnored private var escapeMonitors: [Any] = []
     @ObservationIgnored private var previewTask: Task<Void, Never>?
     @ObservationIgnored private var feedTask: Task<Void, Never>?
     @ObservationIgnored private var snapshotTask: Task<Void, Never>?
 
-    /// État de l'icône menu bar, dérivé de la machine d'états du HUD (§5.2).
+    /// État de l'icône menu bar (§5.2) : la dictée (HUD) prime, puis l'échec
+    /// fichier (badge 4 s), puis l'activité de la file, sinon repos.
     var menuBarState: MenuBarState {
         switch hud.state {
-        case .listening: .recording
-        case .transcribing, .correcting: .processing
-        case .error: .error
-        case .idle, .success: .idle
+        case .listening: return .recording
+        case .transcribing, .correcting: return .processing
+        case .error: return .error
+        case .idle, .success:
+            if fileErrorFlash { return .error }
+            return fileQueue.isWorking ? .processing : .idle
         }
     }
 
@@ -87,6 +98,7 @@ final class AppCoordinator {
         AppSettings.registerDefaults()
         historyStore = Self.makeHistoryStore()
         transcriptionService = TranscriptionService(modelManager: modelManager)
+        fileQueue = FileTranscriptionQueue(transcriber: transcriptionService, history: historyStore)
 
         hudPanel = HUDPanelController(viewModel: hud)
         flow = makeFlow()
@@ -130,8 +142,10 @@ final class AppCoordinator {
 
         hud.setLanguage(AppSettings.language)
         wireFlowCallbacks()
+        wireFileQueueCallbacks()
         startHotkeyPump()
         observeLanguageChanges()
+        subscribeToMenuBarNotifications()
     }
 
     // MARK: - Flow de dictée
@@ -336,6 +350,78 @@ final class AppCoordinator {
     func openSettingsWindow() {
         openSettingsWindowAction()
         NSApp.activate()
+    }
+
+    // MARK: - Fichiers (drop fenêtre, NSOpenPanel menu bar)
+
+    private func wireFileQueueCallbacks() {
+        fileQueue.makeCorrector = { [weak self] in self?.makeCorrector() }
+        fileQueue.onFailure = { [weak self] fileName, message in
+            NSLog("Mintzo: transcription de « %@ » échouée — %@", fileName, message)
+            self?.flashFileError()
+        }
+    }
+
+    /// Point d'entrée du drop fenêtre entière (§6.3) et du picker menu bar.
+    func enqueueFiles(_ urls: [URL]) {
+        let language = dictationLanguage
+        for url in urls {
+            fileQueue.enqueue(url: url, language: language)
+        }
+    }
+
+    func presentFilePicker() {
+        Task { [weak self] in
+            NSApp.activate()
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.audio]
+            panel.allowsMultipleSelection = true
+            panel.canChooseDirectories = false
+            let response = await panel.begin()
+            guard response == .OK, let self else { return }
+            self.enqueueFiles(panel.urls)
+        }
+    }
+
+    /// Badge erreur discret sur l'icône menu bar pendant 4 s — pas de fenêtre
+    /// imposée, pas de son (calme §1) ; le détail est dans le log.
+    private func flashFileError() {
+        fileErrorFlash = true
+        fileErrorTask?.cancel()
+        fileErrorTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled else { return }
+            self?.fileErrorFlash = false
+        }
+    }
+
+    // MARK: - Notifications menu bar (popover §5.3 → actions réelles)
+
+    private func subscribeToMenuBarNotifications() {
+        subscribe(.mintzoDictateToggleRequested) { coordinator in
+            await coordinator.handleHotkey(.toggled)
+        }
+        subscribe(.mintzoOpenMainWindowRequested) { coordinator in
+            coordinator.openMainWindow()
+        }
+        subscribe(.mintzoTranscribeFileRequested) { coordinator in
+            coordinator.presentFilePicker()
+        }
+        subscribe(.mintzoOpenSettingsRequested) { coordinator in
+            coordinator.openSettingsWindow()
+        }
+    }
+
+    private func subscribe(
+        _ name: Notification.Name,
+        perform action: @escaping @MainActor (AppCoordinator) async -> Void
+    ) {
+        notificationTasks.append(Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: name) {
+                guard let self else { return }
+                await action(self)
+            }
+        })
     }
 
     // MARK: - Langue (§4.4, §5.2)

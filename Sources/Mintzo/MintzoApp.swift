@@ -13,8 +13,12 @@ struct MintzoApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        MainWindowScene(store: coordinator.historyStore)
-            .defaultLaunchBehavior(.suppressed) // app menu bar : rien ne s'ouvre au lancement
+        MainWindowScene(
+            store: coordinator.historyStore,
+            queue: coordinator.fileQueue,
+            onFilesDropped: { coordinator.enqueueFiles($0) }
+        )
+        .defaultLaunchBehavior(.suppressed) // app menu bar : rien ne s'ouvre au lancement
     }
 }
 
