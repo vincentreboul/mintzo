@@ -124,6 +124,7 @@
 		"s1Head": "The online tool",
 		"s1P1": "When you use the tool, your audio file is sent to our transcription server — and nowhere else — along with the chosen language and the correction option.",
 		"s1P2": "The server returns the transcription, then deletes the audio immediately. We keep neither the audio nor the text; there is no account, no log containing your content.",
+		"s1P3": "Microphone dictation follows the same rule: the audio goes to the server, then is deleted as soon as the transcription is returned.",
 		"s2Head": "History",
 		"s2P1": "The transcription history is stored in your browser only (IndexedDB). It is never sent to our servers, and you can erase it at any time, from the tool page itself.",
 		"s3Head": "No cookies, no trackers",

@@ -17,6 +17,7 @@
 		<h2 class="display sub">{t('privacy.s1Head')}</h2>
 		<p>{t('privacy.s1P1')}</p>
 		<p>{t('privacy.s1P2')}</p>
+		<p>{t('privacy.s1P3')}</p>
 	</section>
 
 	<section>
@@ -41,6 +42,16 @@
 	.page {
 		max-width: 46rem;
 		padding-block: clamp(3rem, 7vw, 5rem) clamp(2rem, 5vw, 3rem);
+	}
+
+	.page-head::before {
+		content: '';
+		display: block;
+		width: 2.5rem;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--gorri);
+		margin-bottom: 1.5rem;
 	}
 
 	.title {

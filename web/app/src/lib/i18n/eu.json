@@ -124,6 +124,7 @@
 		"s1Head": "Lineako tresna",
 		"s1P1": "Tresna erabiltzean, zure audio-fitxategia gure transkripzio-zerbitzarira bidaltzen da — beste inora ez —, aukeratutako hizkuntzarekin eta zuzenketa-aukerarekin batera.",
 		"s1P2": "Zerbitzariak transkripzioa itzuli eta berehala ezabatzen du audioa. Ez dugu ez audiorik ez testurik gordetzen; ez dago konturik, ez zure edukia jasotzen duen erregistrorik.",
+		"s1P3": "Mikrofonoarekin diktatzen duzunean ere berdin: audioa zerbitzarira bidaltzen da, eta transkripzioa itzulitakoan berehala ezabatzen.",
 		"s2Head": "Historia",
 		"s2P1": "Transkripzioen historia zure nabigatzailean gordetzen da soilik (IndexedDB). Ez da inoiz gure zerbitzarietara igotzen, eta noiznahi ezaba dezakezu, tresnaren orritik bertatik.",
 		"s3Head": "Cookierik ez, trazatzailerik ez",

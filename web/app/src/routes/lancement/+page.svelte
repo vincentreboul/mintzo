@@ -159,6 +159,16 @@
 		color: var(--gorri);
 	}
 
+	.accent::before {
+		content: '';
+		display: block;
+		width: 2.5rem;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--gorri);
+		margin-bottom: 1.5rem;
+	}
+
 	.title {
 		font-size: clamp(2.125rem, 5.5vw, 3rem);
 		margin-top: 1rem;

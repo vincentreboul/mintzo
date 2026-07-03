@@ -124,6 +124,7 @@
 		"s1Head": "L’outil en ligne",
 		"s1P1": "Quand vous utilisez l’outil, votre fichier audio est envoyé à notre serveur de transcription — et nulle part ailleurs —, avec la langue choisie et l’option de correction.",
 		"s1P2": "Le serveur renvoie la transcription puis supprime l’audio immédiatement. Nous ne conservons ni l’audio ni le texte ; il n’y a pas de compte, pas de journal contenant votre contenu.",
+		"s1P3": "La dictée au micro suit la même règle : l’audio part au serveur, puis est supprimé dès que la transcription est rendue.",
 		"s2Head": "L’historique",
 		"s2P1": "L’historique des transcriptions est stocké uniquement dans votre navigateur (IndexedDB). Il n’est jamais envoyé à nos serveurs, et vous pouvez l’effacer à tout moment, depuis la page de l’outil.",
 		"s3Head": "Ni cookies, ni traceurs",
