@@ -1,5 +1,5 @@
 /** TODO-URL : remplacer par l'URL réelle du dépôt à publication. */
-export const GITHUB_URL = 'https://github.com/TODO-mintzo/mintzo';
+export const GITHUB_URL = 'https://github.com/vincentreboul/mintzo';
 
 export const COMMON_VOICE_URL = 'https://commonvoice.mozilla.org/eu';
 export const HITZ_URL = 'https://hitz.ehu.eus/';
