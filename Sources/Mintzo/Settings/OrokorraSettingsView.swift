@@ -30,6 +30,9 @@ struct OrokorraSettingsView: View {
                 }
                 .pickerStyle(.segmented)
 
+                // Cycle de langue eu → fr → auto (§4.4) — défaut ⌃⌥L.
+                KeyboardShortcuts.Recorder(SettingsStrings.languageShortcutLabel, name: .languageCycle)
+
                 KeyboardShortcuts.Recorder(SettingsStrings.shortcutLabel, name: .dictation)
 
                 // Appui simple (défaut, façon SuperWhisper) ou maintien —
@@ -100,7 +103,7 @@ struct OrokorraSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(height: 590)
+        .frame(height: 620)
         .onChange(of: fnEnabled) { _, newValue in
             AppSettings.fnKeyEnabled = newValue
             coordinator.hotkeySettingsChanged()

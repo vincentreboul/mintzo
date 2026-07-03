@@ -1,4 +1,6 @@
 import Foundation
+import KeyboardShortcuts
+import MintzoCore
 
 // Microcopy HUD + menu bar — chaînes canoniques du design language §9.2.
 // Langue : euskara batua si le système est en eu, sinon français, sinon anglais (§9.1).
@@ -44,9 +46,16 @@ enum MzStrings {
     /// Croix d'annulation de la capsule (tooltip + VoiceOver) : abandon de la
     /// session en cours, aucun texte inséré.
     static var cancel: String { pick("Utzi", "Annuler", "Cancel") }
-    /// Tooltip du badge langue (§4.4). Sans mention du raccourci ⌃⌥L tant
-    /// qu'il n'est pas implémenté — un tooltip ne promet pas dans le vide.
-    static var languageBadgeHelp: String { "eu / fr / auto" }
+    /// Tooltip du badge langue (§4.4) : cycle + raccourci global effectif
+    /// (celui du Recorder — ⌃⌥L par défaut). Raccourci retiré : cycle seul,
+    /// un tooltip ne promet pas dans le vide.
+    @MainActor
+    static var languageBadgeHelp: String {
+        guard let shortcut = KeyboardShortcuts.getShortcut(for: .languageCycle) else {
+            return "eu / fr / auto"
+        }
+        return "eu / fr / auto — \(shortcut.description)"
+    }
 
     // MARK: Menu bar (§5.3)
 

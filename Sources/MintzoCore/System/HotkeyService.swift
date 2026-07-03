@@ -5,6 +5,10 @@ extension KeyboardShortcuts.Name {
     /// Raccourci de dictée configurable (l'app expose `KeyboardShortcuts.Recorder`
     /// sur ce nom dans ses réglages). Défaut : ⌥Espace.
     public static let dictation = Self("dictation", initial: .init(.space, modifiers: [.option]))
+
+    /// Raccourci global de bascule de langue (§4.4) : cycle eu → fr → auto,
+    /// y compris pendant l'écoute. Configurable dans les réglages. Défaut : ⌃⌥L.
+    public static let languageCycle = Self("languageCycle", initial: .init(.l, modifiers: [.control, .option]))
 }
 
 /// Source des transitions du raccourci configurable — protocole pour injecter
@@ -207,5 +211,58 @@ public final class HotkeyService {
                 }
             }
         })
+    }
+}
+
+/// Raccourci global de bascule de langue (§4.4) — cycle eu → fr → auto,
+/// y compris pendant l'écoute. Écoute `.languageCycle` (KeyboardShortcuts,
+/// zéro permission) et déclenche `onCycle` à chaque appui (`.down`) ;
+/// le relâchement est ignoré. La logique de cycle reste chez l'appelant
+/// (`HUDLanguage.next`), ce service ne fait que pomper le raccourci.
+@MainActor
+public final class LanguageCycleHotkey {
+
+    /// Identifiant du raccourci de langue (stockage UserDefaults de
+    /// KeyboardShortcuts). Exposé pour les couches qui ne linkent pas le
+    /// package (tests, diagnostics).
+    public static var shortcutID: String {
+        KeyboardShortcuts.Name.languageCycle.rawValue
+    }
+
+    /// Un raccourci par défaut (⌃⌥L) est-il déclaré pour la bascule de langue ?
+    public static var hasDefaultShortcut: Bool {
+        KeyboardShortcuts.Name.languageCycle.initialShortcut != nil
+    }
+
+    /// Description native du raccourci par défaut (« ⌃⌥L ») — tests, tooltips.
+    public static var defaultShortcutDescription: String? {
+        KeyboardShortcuts.Name.languageCycle.initialShortcut?.description
+    }
+
+    private let source: any ShortcutEventSource
+    private var pumpTask: Task<Void, Never>?
+
+    public init(source: any ShortcutEventSource = KeyboardShortcutsEventSource(name: .languageCycle)) {
+        self.source = source
+    }
+
+    /// Démarre l'écoute — chaque appui du raccourci appelle `onCycle`.
+    /// Rappeler `start(onCycle:)` remplace la pompe précédente (stop implicite).
+    public func start(onCycle: @escaping @MainActor () -> Void) {
+        stop()
+        let transitions = source.events()
+        pumpTask = Task { @MainActor in
+            for await transition in transitions where transition == .down {
+                // `AsyncStream` draine son buffer même après `cancel()` : sans ce
+                // garde, des appuis déjà en file déclencheraient après `stop()`.
+                guard !Task.isCancelled else { break }
+                onCycle()
+            }
+        }
+    }
+
+    public func stop() {
+        pumpTask?.cancel()
+        pumpTask = nil
     }
 }
