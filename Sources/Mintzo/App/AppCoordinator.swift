@@ -326,12 +326,15 @@ final class AppCoordinator {
 
     private func hotkeyConfiguration() -> HotkeyService.Configuration {
         HotkeyService.Configuration(
-            activationMode: .pushToTalk,
+            // Réglage « comportement du raccourci » (appui simple par défaut).
+            // La touche Fn, elle, reste un push-to-talk quel que soit ce mode.
+            activationMode: AppSettings.shortcutBehavior.activationMode,
             fnKeyEnabled: AppSettings.fnKeyEnabled
         )
     }
 
-    /// À appeler quand le réglage « touche Fn » change — remplace la session hotkey.
+    /// À appeler quand un réglage hotkey (touche Fn, comportement du raccourci)
+    /// change — remplace la session hotkey.
     func hotkeySettingsChanged() {
         guard servicesStarted else { return }
         startHotkeyPump()
