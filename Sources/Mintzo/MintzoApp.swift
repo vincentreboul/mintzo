@@ -19,6 +19,10 @@ struct MintzoApp: App {
             onFilesDropped: { coordinator.enqueueFiles($0) }
         )
         .defaultLaunchBehavior(.suppressed) // app menu bar : rien ne s'ouvre au lancement
+
+        Settings {
+            SettingsRootView(coordinator: coordinator)
+        }
     }
 }
 
@@ -28,6 +32,7 @@ struct MintzoApp: App {
 private struct MenuBarLabelView: View {
     let coordinator: AppCoordinator
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         MenuBarIconView(
@@ -38,7 +43,7 @@ private struct MenuBarLabelView: View {
         .onAppear {
             coordinator.bootstrap(
                 openMainWindow: { openWindow(id: "main") },
-                openSettings: {}
+                openSettings: { openSettings() }
             )
         }
     }

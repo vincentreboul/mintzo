@@ -39,6 +39,9 @@ final class AppCoordinator {
     /// File d'affichage des transcriptions de fichiers (fenêtre principale §6.3).
     let fileQueue: FileTranscriptionQueue
 
+    /// Bibliothèque de modèles (onglet Ereduak) : whisper eu/fr/tiny + Latxa.
+    let modelLibrary: ModelLibraryController
+
     // MARK: Actions fenêtres (injectées par la scène au premier rendu)
 
     @ObservationIgnored private var openMainWindowAction: () -> Void = {}
@@ -99,6 +102,7 @@ final class AppCoordinator {
         historyStore = Self.makeHistoryStore()
         transcriptionService = TranscriptionService(modelManager: modelManager)
         fileQueue = FileTranscriptionQueue(transcriber: transcriptionService, history: historyStore)
+        modelLibrary = ModelLibraryController.standard(manager: modelManager)
 
         hudPanel = HUDPanelController(viewModel: hud)
         flow = makeFlow()
@@ -334,9 +338,11 @@ final class AppCoordinator {
             guard let latxaLoader else { return nil }
             return CorrectionService(corrector: LazyLatxaCorrector(loader: latxaLoader))
         case .cloud:
-            // Câblé au jalon réglages : AnthropicCorrector(keyProvider: KeychainKeyStore()).
-            NSLog("Mintzo: correction cloud demandée avant le jalon réglages — passe sautée")
-            return nil
+            // BYOK : clé lue dans le trousseau au moment de la requête. Si elle
+            // manque, le correcteur lève → CorrectionService retombe sur le brut.
+            return CorrectionService(
+                corrector: AnthropicCorrector(keyProvider: KeychainKeyStore())
+            )
         }
     }
 
