@@ -11,16 +11,22 @@
 			<Logo compact />
 		</a>
 		<nav class="right" aria-label="Nabigazioa">
-			{#if page.url.pathname !== '/tresna'}
-				<a class="navlink" href="/tresna">{t('common.navTool')}</a>
-			{/if}
 			<LangSwitch />
+			{#if page.url.pathname !== '/tresna'}
+				<a class="btn btn-primary cta" href="/tresna">{t('common.navTool')}</a>
+			{/if}
 		</nav>
 	</div>
 </header>
 
 <style>
 	header {
+		position: sticky;
+		top: 0;
+		z-index: 40;
+		background: color-mix(in srgb, var(--paper) 84%, transparent);
+		-webkit-backdrop-filter: blur(14px);
+		backdrop-filter: blur(14px);
 		border-bottom: 1px solid var(--hairline);
 	}
 
@@ -28,28 +34,23 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding-block: 1.125rem;
+		padding-block: 0.75rem;
 	}
 
 	.home {
 		text-decoration: none;
+		border-radius: 0.375rem;
 	}
 
 	.right {
 		display: flex;
 		align-items: center;
-		gap: 1.25rem;
+		gap: 1rem;
 	}
 
-	.navlink {
+	.cta {
+		min-height: 2.25rem;
+		padding: 0.375rem 1.125rem;
 		font-size: 0.875rem;
-		font-weight: 500;
-		text-decoration: none;
-		color: var(--ink-2);
-		transition: color var(--motion-micro);
-	}
-
-	.navlink:hover {
-		color: var(--gorri);
 	}
 </style>
