@@ -2,10 +2,11 @@ import SwiftUI
 import MintzoCore
 
 /// Écran 3 · Eredua — téléchargement du modèle de la langue par défaut
-/// (progression réelle sur le flux `ModelManager.download`, taille annoncée,
-/// reprise d'erreur), Latxa mentionné en une ligne sobre, puis zone d'essai
-/// « Proba ezazu » : une vraie dictée via le coordinator, le champ local comme
-/// cible (sans Accessibilité, le texte reste sur le presse-papiers — le HUD le dit).
+/// (progression réelle sur le flux `ModelManager.download` en `ProgressView`
+/// native, taille annoncée, reprise d'erreur), Latxa mentionné en une ligne
+/// sobre, puis zone d'essai « Proba ezazu » : une vraie dictée via le
+/// coordinator, un `TextField` natif comme cible — le texte dicté s'y affiche
+/// en serif (§3.1 : la surface de lecture garde l'identité éditoriale).
 struct OnboardingModelView: View {
     @Bindable var controller: OnboardingController
 
@@ -16,20 +17,20 @@ struct OnboardingModelView: View {
             OnboardingTitle(text: OnboardingStrings.modelTitle)
                 .padding(.bottom, 10)
             OnboardingBody(text: OnboardingStrings.modelIntro)
-                .padding(.bottom, 22)
+                .padding(.bottom, 20)
 
             languagePicker
                 .padding(.bottom, 12)
 
-            ModelCardView(
+            ModelBox(
                 row: controller.modelRow,
                 onDownload: { controller.downloadSelectedModel() }
             )
-            .padding(.bottom, 10)
+            .padding(.bottom, 8)
 
             Text(OnboardingStrings.latxaNote)
-                .font(.system(size: 11))
-                .foregroundStyle(MzColor.inkTertiary)
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
                 .padding(.bottom, 20)
 
             trialSection
@@ -49,6 +50,9 @@ struct OnboardingModelView: View {
             EmptyView()
         }
         .pickerStyle(.segmented)
+        // §2.1 « un seul accent » : sans tint, le segment sélectionné rend
+        // BLEU système (seul contrôle bleu de l'app — vu en capture QA R3).
+        .tint(MzColor.gorri)
         .labelsHidden()
         // Largeur naturelle : un frame plus large centrerait le contrôle
         // dans son cadre et le décollerait de la marge de gauche.
@@ -69,7 +73,7 @@ struct OnboardingModelView: View {
                 HStack(spacing: 10) {
                     Text(OnboardingStrings.trialNeedsMicrophone)
                         .font(.system(size: 13))
-                        .foregroundStyle(MzColor.inkSecondary)
+                        .foregroundStyle(.secondary)
                     Button(OnboardingStrings.openSystemSettings) {
                         controller.openMicrophoneSettings()
                     }
@@ -79,19 +83,19 @@ struct OnboardingModelView: View {
             }
             .transition(.opacity)
         case .ready:
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 9) {
                 // Le bouton d'essai vit sur la ligne du titre de section :
                 // loin du « Amaitu » de la navigation, aucune concurrence
-                // entre deux capsules Gorri dans le même coin.
-                HStack(alignment: .center) {
+                // entre deux boutons proéminents dans le même coin.
+                HStack(alignment: .firstTextBaseline) {
                     trialHeader
                     Spacer(minLength: 16)
                     trialButton
                 }
                 trialField
                 Text(OnboardingStrings.trialHint)
-                    .font(.system(size: 11))
-                    .foregroundStyle(MzColor.inkTertiary)
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
             }
             .transition(.opacity)
         }
@@ -99,46 +103,25 @@ struct OnboardingModelView: View {
 
     private var trialHeader: some View {
         Text(OnboardingStrings.trialTitle)
-            .font(MzFont.sectionHeader)
-            .tracking(MzFont.sectionHeaderTracking)
-            .foregroundStyle(MzColor.inkSecondary)
+            .font(.headline)
+            .foregroundStyle(.primary)
     }
 
-    /// La cible de la dictée d'essai : le texte dicté y arrive en serif,
-    /// comme partout dans Mintzo (§3.1 — la parole est typographiée).
+    /// La cible de la dictée d'essai : `TextField` système (bordure, focus
+    /// ring et placeholder natifs) — le texte dicté y arrive en serif, comme
+    /// partout dans Mintzo (§3.1 : la parole est typographiée).
     private var trialField: some View {
-        TextEditor(text: $controller.trialText)
-            .font(MzFont.historyExcerpt)
-            .lineSpacing(MzFont.historyExcerptLineSpacing)
-            .foregroundStyle(MzColor.ink)
-            .scrollContentBackground(.hidden)
-            .padding(10)
-            .frame(height: 76)
-            .background(
-                RoundedRectangle(cornerRadius: Metrics.cardCornerRadius, style: .continuous)
-                    .fill(MzColor.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.cardCornerRadius, style: .continuous)
-                    .strokeBorder(
-                        trialFieldFocused
-                            ? MzColor.gorri.opacity(MzOpacity.activeBorder)
-                            : MzColor.hairline,
-                        lineWidth: trialFieldFocused ? 1 : Metrics.hairlineWidth
-                    )
-            )
-            .overlay(alignment: .topLeading) {
-                if controller.trialText.isEmpty {
-                    Text(OnboardingStrings.trialPlaceholder)
-                        .font(MzFont.historyExcerpt)
-                        .foregroundStyle(MzColor.inkTertiary)
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 10)
-                        .allowsHitTesting(false)
-                }
-            }
-            .focused($trialFieldFocused)
-            .animation(MzMotion.micro, value: trialFieldFocused)
+        TextField(
+            OnboardingStrings.trialTitle,
+            text: $controller.trialText,
+            prompt: Text(OnboardingStrings.trialPlaceholder),
+            axis: .vertical
+        )
+        .labelsHidden()
+        .textFieldStyle(.roundedBorder)
+        .lineLimit(3, reservesSpace: true)
+        .font(MzFont.historyExcerpt)
+        .focused($trialFieldFocused)
     }
 
     @ViewBuilder
@@ -166,23 +149,22 @@ struct OnboardingModelView: View {
     }
 }
 
-// MARK: - Carte modèle
+// MARK: - Boîte modèle (GroupBox système)
 
-private struct ModelCardView: View {
+private struct ModelBox: View {
     let row: OnboardingController.ModelRowState
     let onDownload: () -> Void
 
     var body: some View {
-        OnboardingCard {
+        GroupBox {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .center, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(row.model.displayName)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(MzColor.ink)
+                            .font(.headline)
                         Text(subtitle)
-                            .font(.system(size: 11).monospacedDigit())
-                            .foregroundStyle(MzColor.inkSecondary)
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 16)
                     trailingControl
@@ -201,6 +183,7 @@ private struct ModelCardView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(6)
         }
         .animation(MzMotion.micro, value: row.isInstalled)
         .animation(MzMotion.micro, value: row.downloadFraction == nil)
@@ -213,11 +196,11 @@ private struct ModelCardView: View {
     @ViewBuilder
     private var trailingControl: some View {
         if row.downloadFraction != nil {
-            EmptyView() // la progression occupe le bas de la carte
+            EmptyView() // la progression occupe le bas de la boîte
         } else if row.isInstalled {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 Text(OnboardingStrings.installed)
                     .font(.system(size: 13, weight: .medium))
             }
@@ -240,21 +223,22 @@ private struct ModelCardView: View {
         }
     }
 
+    /// `ProgressView` linéaire système teintée Gorri, détail chiffré en
+    /// `currentValueLabel` (construct natif), monospacedDigit §3.1.
     private func progressBlock(fraction: Double) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Barre 2 pt rail hairline / remplissage Gorri (§6.3) — la même
-            // que la file d'attente de la fenêtre principale.
-            MzProgressBar(fraction: fraction)
+        ProgressView(value: fraction) {
+            EmptyView()
+        } currentValueLabel: {
             HStack {
                 Text(OnboardingStrings.downloading)
-                    .font(.system(size: 11))
-                    .foregroundStyle(MzColor.inkSecondary)
                 Spacer()
                 Text(progressDetail(fraction: fraction))
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(MzColor.inkSecondary)
+                    .monospacedDigit()
             }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
+        .tint(MzColor.gorri)
         .transition(.opacity)
     }
 
