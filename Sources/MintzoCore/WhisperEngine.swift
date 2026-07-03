@@ -6,6 +6,24 @@ public enum WhisperError: Error, Sendable, Equatable {
     case modelNotFound(String)
     case initializationFailed
     case transcriptionFailed(code: Int32)
+    /// Trop peu d'audio pour une détection de langue fiable (< ~0,5 s).
+    case insufficientAudioForDetection
+    case languageDetectionFailed(code: Int32)
+}
+
+/// Résultat d'une détection de langue.
+public struct LanguageDetection: Sendable, Equatable {
+    /// Code ISO 639-1 du gagnant (ex. « eu », « fr »).
+    public let language: String
+    /// Probabilité du gagnant. Si la détection était restreinte à des
+    /// candidats, elle est renormalisée parmi eux (eu vs fr : P(eu)+P(fr)=1) —
+    /// bien plus discriminante qu'une probabilité brute sur ~99 langues.
+    public let confidence: Float
+
+    public init(language: String, confidence: Float) {
+        self.language = language
+        self.confidence = confidence
+    }
 }
 
 /// Wrapper Swift autour de l'API C de whisper.cpp.
@@ -81,5 +99,71 @@ public actor WhisperEngine {
     ) -> R {
         guard let string else { return body(nil) }
         return string.withCString(body)
+    }
+
+    // MARK: - Détection de langue (§4.4 mode auto)
+
+    /// Seuil minimal d'audio pour une détection (0,5 s à 16 kHz).
+    public static let detectionMinimumSampleCount = 8_000
+
+    /// Détecte la langue parlée dans des échantillons PCM (mono 16 kHz).
+    ///
+    /// API C vérifiée dans le whisper.h du xcframework :
+    /// `whisper_pcm_to_mel(ctx, samples, n_samples, n_threads)` calcule le
+    /// spectrogramme mel, puis `whisper_lang_auto_detect(ctx, offset_ms,
+    /// n_threads, lang_probs)` retourne l'id de la langue dominante et remplit
+    /// le tableau de probabilités (taille `whisper_lang_max_id() + 1`).
+    ///
+    /// - Parameters:
+    ///   - samples: audio PCM normalisé [-1, 1], mono, 16 kHz (≥ 0,5 s).
+    ///   - candidates: restreint la décision à ces langues (ex. ["eu", "fr"]) ;
+    ///     vide = gagnant global parmi toutes les langues whisper.
+    public func detectLanguage(
+        samples: [Float],
+        among candidates: [String] = []
+    ) async throws -> LanguageDetection {
+        guard samples.count >= Self.detectionMinimumSampleCount else {
+            throw WhisperError.insufficientAudioForDetection
+        }
+        let threads = Int32(max(1, min(8, ProcessInfo.processInfo.activeProcessorCount)))
+
+        let melStatus = samples.withUnsafeBufferPointer { buffer in
+            whisper_pcm_to_mel(ctx, buffer.baseAddress, Int32(buffer.count), threads)
+        }
+        guard melStatus == 0 else {
+            throw WhisperError.languageDetectionFailed(code: melStatus)
+        }
+
+        var probs = [Float](repeating: 0, count: Int(whisper_lang_max_id()) + 1)
+        let topID = probs.withUnsafeMutableBufferPointer { buffer in
+            whisper_lang_auto_detect(ctx, 0, threads, buffer.baseAddress)
+        }
+        guard topID >= 0 else {
+            throw WhisperError.languageDetectionFailed(code: topID)
+        }
+
+        guard !candidates.isEmpty else {
+            let language = whisper_lang_str(topID).map { String(cString: $0) } ?? "??"
+            return LanguageDetection(language: language, confidence: probs[Int(topID)])
+        }
+
+        // Décision restreinte aux candidats (produit : eu vs fr), probabilité
+        // renormalisée entre eux — robuste même quand whisper hésite avec une
+        // langue tierce proche (es, pt…).
+        var best: (language: String, probability: Float)?
+        var total: Float = 0
+        for candidate in candidates {
+            let id = candidate.withCString(whisper_lang_id)
+            guard id >= 0, Int(id) < probs.count else { continue }
+            let probability = probs[Int(id)]
+            total += probability
+            if probability > (best?.probability ?? -1) {
+                best = (candidate, probability)
+            }
+        }
+        guard let best, total > 0 else {
+            throw WhisperError.languageDetectionFailed(code: -1)
+        }
+        return LanguageDetection(language: best.language, confidence: best.probability / total)
     }
 }

@@ -42,19 +42,22 @@ final class FileTranscriptionQueue: QueueDisplaying {
 
     // MARK: - Enfilage
 
-    func enqueue(url: URL, language: Language) {
+    /// `language` nil = mode auto : la langue est détectée par le service
+    /// (whisper-tiny) — le chip de l'item et l'historique reçoivent la langue
+    /// effective au résultat.
+    func enqueue(url: URL, language: Language?) {
         let item = QueueItem(
             nomFichier: url.lastPathComponent,
             progress: nil, // « zain »
             duree: nil,
-            langue: language == .basque ? .eu : .fr
+            langue: language.map { $0 == .basque ? .eu : .fr } // nil = auto (posé au résultat)
         )
         items.append(item)
         probeDuration(of: url, itemID: item.id)
 
         Task { [weak self] in
             guard let self else { return }
-            let events = await self.transcriber.enqueue(url: url, language: language.rawValue)
+            let events = await self.transcriber.enqueue(url: url, language: language?.rawValue)
             for await event in events {
                 await self.handle(event, itemID: item.id, url: url, language: language)
             }
@@ -67,7 +70,7 @@ final class FileTranscriptionQueue: QueueDisplaying {
         _ event: TranscriptionJobEvent,
         itemID: UUID,
         url: URL,
-        language: Language
+        language: Language?
     ) async {
         switch event {
         case .queued:
@@ -99,8 +102,17 @@ final class FileTranscriptionQueue: QueueDisplaying {
     /// Correction (optionnelle, bornée) → post-processing → historique.
     /// `false` = échec (l'item est passé en état erreur, ne pas le retirer tout de suite).
     private func finalize(
-        _ result: TranscriptionResult, itemID: UUID, url: URL, language: Language
+        _ result: TranscriptionResult, itemID: UUID, url: URL, language: Language?
     ) async -> Bool {
+        // Langue effective : demandée, sinon détectée (rapportée par le
+        // service), sinon langue de repli de l'utilisateur.
+        let effective = language
+            ?? result.language.flatMap(Language.init(rawValue:))
+            ?? AppSettings.fallbackLanguage
+        if language == nil {
+            update(itemID) { $0.langue = effective == .basque ? .eu : .fr }
+        }
+
         let raw = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else {
             fail(itemID, url: url, message: MzL10n.queueNoText)
@@ -110,7 +122,7 @@ final class FileTranscriptionQueue: QueueDisplaying {
         var finalText = raw
         if let corrector = makeCorrector() {
             finalText = await DictationFlow.correct(
-                raw, language: language, corrector: corrector, timeout: correctionTimeout
+                raw, language: effective, corrector: corrector, timeout: correctionTimeout
             )
         }
         finalText = DictationFlow.postProcess(finalText)
@@ -119,7 +131,7 @@ final class FileTranscriptionQueue: QueueDisplaying {
             texteBrut: raw,
             texteCorrige: finalText != raw ? finalText : nil,
             dureeAudio: result.audioDuration,
-            langue: language == .basque ? .eu : .fr,
+            langue: effective == .basque ? .eu : .fr,
             source: .fichier,
             nomFichier: url.lastPathComponent
         )

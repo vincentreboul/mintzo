@@ -417,8 +417,9 @@ final class AppCoordinator {
     }
 
     /// Point d'entrée du drop fenêtre entière (§6.3) et du picker menu bar.
+    /// Mode auto : langue nil — détectée fichier par fichier par le service.
     func enqueueFiles(_ urls: [URL]) {
-        let language = dictationLanguage
+        let language = hud.language.dictationLanguage
         for url in urls {
             fileQueue.enqueue(url: url, language: language)
         }
