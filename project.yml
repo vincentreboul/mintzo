@@ -30,6 +30,8 @@ targets:
     platform: macOS
     sources:
       - Sources/Mintzo
+      - path: Resources
+        buildPhase: resources
     dependencies:
       - target: MintzoCore
       - framework: Vendor/whisper.xcframework
@@ -41,6 +43,7 @@ targets:
       path: Sources/Mintzo/Info.plist
       properties:
         CFBundleDisplayName: Mintzo
+        CFBundleIconFile: AppIcon
         LSUIElement: true
         NSMicrophoneUsageDescription: "Mintzo utilise le microphone pour transcrire votre voix en texte, localement sur votre Mac."
     entitlements:
