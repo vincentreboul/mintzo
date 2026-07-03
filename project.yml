@@ -16,6 +16,14 @@ settings:
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: "0.1.0"
 
+packages:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: 3.0.0
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: 7.0.0
+
 targets:
   Mintzo:
     type: application
@@ -26,6 +34,7 @@ targets:
       - target: MintzoCore
       - framework: Vendor/whisper.xcframework
         embed: true
+      - package: KeyboardShortcuts
     info:
       path: Sources/Mintzo/Info.plist
       properties:
@@ -52,6 +61,8 @@ targets:
     dependencies:
       - framework: Vendor/whisper.xcframework
         embed: false
+      - package: KeyboardShortcuts
+      - package: GRDB
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: eus.mintzo.MintzoCore
