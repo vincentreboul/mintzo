@@ -1,15 +1,15 @@
 /* ============================================================
    Mintzo — feuille de base web
-   Transposition stricte de docs/design/design-language.md :
-   papier chaud / encre, un seul rouge (Gorri Etxea), serif de
-   lecture réservée au texte transcrit, motion calme (arnasa).
+   Site produit rouge / blanc (identité ikurriña) :
+   fond blanc dominant, UN rouge basque, encre quasi-noire.
+   Fraunces réservée au wordmark, aux titres display et au texte
+   transcrit (Literata) ; tout le reste parle en sans UI.
    ============================================================ */
 
 /* ---------- Fontes auto-hébergées (subset latin, SIL OFL) ----------
    Fraunces  : wordmark + titres display (axes opsz 9–144 + wght).
    Literata  : serif de lecture pour le texte transcrit — dessinée
-   par TypeTogether pour la lecture longue à l'écran (Google Play
-   Books), registre « livre » qui répond au New York de l'app Mac. */
+   par TypeTogether pour la lecture longue à l'écran. */
 
 @font-face {
 	font-family: 'Fraunces';
@@ -38,33 +38,49 @@
 :root {
 	color-scheme: light dark;
 
-	/* palette light (design-language §2.3) */
-	--paper: #faf9f7;
+	/* palette light — blanc ikurriña.
+	   --gorri #C1271C : la teinte et la chroma du rouge ikurriña (Pantone 485,
+	   #DA291C), luminance abaissée pour tenir 5.9:1 sur blanc — AA texte, AAA
+	   large. Plus vif que le Gorri Etxea #9B2D23, moins criard que le drapeau. */
+	--paper: #ffffff;
 	--surface: #ffffff;
-	--surface-hover: #f3f1ed;
-	--hairline: rgba(28, 27, 26, 0.08);
-	--ink: #1c1b1a;
-	--ink-2: #6b6560;
-	--ink-3: #9b948c;
-	--gorri: #9b2d23;
-	--gorri-bizi: #b5382b;
+	--surface-2: #f7f5f2;
+	--surface-hover: #f3f0ec;
+	--hairline: rgba(24, 20, 16, 0.1);
+	--ink: #181410;
+	--ink-2: #6b645d;
+	--ink-3: #a29a91;
+	--gorri: #c1271c;
+	--gorri-bizi: #e04b33;
 	--success: #3e7a4e;
 	--error: #d70015;
 
-	/* paliers d'opacité de l'accent (§2.4 — ne jamais en inventer d'autres) */
+	/* surfaces pleines rouges — les moments de marque */
+	--fill-red: #c1271c;
+	--fill-red-hover: #a31d13;
+	--on-red: #ffffff;
+	--on-red-soft: rgba(255, 255, 255, 0.78);
+
+	/* paliers d'opacité de l'accent (ne jamais en inventer d'autres) */
 	--gorri-24: color-mix(in srgb, var(--gorri) 24%, transparent);
 	--gorri-12: color-mix(in srgb, var(--gorri) 12%, transparent);
 	--gorri-8: color-mix(in srgb, var(--gorri) 8%, transparent);
 
+	/* ombres du produit — cadre de capture, capsule HUD */
+	--shadow-frame:
+		0 1px 2px rgba(24, 20, 16, 0.06), 0 12px 32px rgba(24, 20, 16, 0.1),
+		0 32px 80px rgba(24, 20, 16, 0.12);
+	--shadow-float: 0 6px 16px rgba(24, 20, 16, 0.14), 0 20px 48px rgba(24, 20, 16, 0.18);
+	--shadow-card: 0 1px 2px rgba(24, 20, 16, 0.05), 0 8px 28px rgba(24, 20, 16, 0.07);
+
 	/* typographie */
 	--font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
 	--font-read: 'Literata', 'Iowan Old Style', Georgia, serif;
-	--font-ui:
-		system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif;
+	--font-ui: system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif;
 	--font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-	--measure: 40rem; /* 640 px — mesure du texte transcrit (§3.2) */
+	--measure: 40rem; /* 640 px — mesure du texte transcrit */
 
-	/* motion (§7.1) — l'app respire, elle ne vibre pas */
+	/* motion — l'app respire, elle ne vibre pas */
 	--motion-micro: 160ms cubic-bezier(0, 0, 0.2, 1);
 	--motion-enter: 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
 	--motion-exit: 220ms cubic-bezier(0.4, 0, 1, 1);
@@ -76,15 +92,27 @@
 	:root {
 		--paper: #171614;
 		--surface: #201e1c;
+		--surface-2: #1c1a18;
 		--surface-hover: #2a2825;
-		--hairline: rgba(242, 240, 237, 0.08);
+		--hairline: rgba(242, 240, 237, 0.09);
 		--ink: #f2f0ed;
 		--ink-2: #a39d95;
 		--ink-3: #6e6862;
-		--gorri: #d96a5b;
-		--gorri-bizi: #e87a66;
+		--gorri: #e06b55;
+		--gorri-bizi: #f08a74;
 		--success: #86c29a;
 		--error: #ff453a;
+
+		--fill-red: #b3301f;
+		--fill-red-hover: #c73d2a;
+		--on-red: #ffffff;
+		--on-red-soft: rgba(255, 255, 255, 0.72);
+
+		--shadow-frame:
+			0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.45),
+			0 32px 80px rgba(0, 0, 0, 0.5);
+		--shadow-float: 0 6px 16px rgba(0, 0, 0, 0.5), 0 20px 48px rgba(0, 0, 0, 0.55);
+		--shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 28px rgba(0, 0, 0, 0.35);
 	}
 }
 
@@ -151,40 +179,45 @@ p {
 	margin: 0;
 }
 
-/* ---------- Primitives éditoriales ---------- */
+img {
+	max-width: 100%;
+	height: auto;
+}
+
+/* ---------- Primitives ---------- */
 
 /* gabarit de page */
 .shell {
-	max-width: 68rem;
+	max-width: 72rem;
 	margin-inline: auto;
 	padding-inline: clamp(1.25rem, 5vw, 3rem);
 }
 
-/* petites capitales de folio — méta, dates, badges (§6.3) */
+/* petites capitales de folio — méta, dates, badges */
 .kicker {
 	font-family: var(--font-ui);
 	font-size: 0.6875rem;
-	font-weight: 600;
-	letter-spacing: 0.12em;
+	font-weight: 650;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 }
 
-/* chiffres stables partout où un nombre change (§3.1) */
+/* chiffres stables partout où un nombre change */
 .tnum {
 	font-variant-numeric: tabular-nums;
 }
 
-/* titres display */
+/* titres display — la voix Fraunces */
 .display {
 	font-family: var(--font-display);
 	font-optical-sizing: auto;
 	font-weight: 620;
-	letter-spacing: -0.01em;
-	line-height: 1.12;
+	letter-spacing: -0.015em;
+	line-height: 1.08;
 	text-wrap: balance;
 }
 
-/* texte transcrit — la seule voix serif de l'outil (§3.2 : 16/26, mesure 640) */
+/* texte transcrit — la seule voix serif de lecture */
 .read {
 	font-family: var(--font-read);
 	font-optical-sizing: auto;
@@ -193,31 +226,38 @@ p {
 	max-width: var(--measure);
 }
 
-/* boutons */
+/* boutons — pilules produit */
 .btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
 	min-height: 2.75rem;
-	padding: 0.625rem 1.25rem;
-	border-radius: 0.5rem;
+	padding: 0.625rem 1.5rem;
+	border-radius: 999px;
 	font-size: 0.9375rem;
-	font-weight: 500;
+	font-weight: 560;
 	text-decoration: none;
 	transition:
 		background-color var(--motion-micro),
 		border-color var(--motion-micro),
-		color var(--motion-micro);
+		color var(--motion-micro),
+		box-shadow var(--motion-micro);
 }
 
 .btn-primary {
-	background: var(--gorri);
-	color: var(--paper);
+	background: var(--fill-red);
+	color: var(--on-red);
 }
 
 .btn-primary:hover {
-	background: color-mix(in srgb, var(--gorri) 85%, var(--paper));
+	background: var(--fill-red-hover);
+}
+
+.btn-lg {
+	min-height: 3.25rem;
+	padding: 0.875rem 2rem;
+	font-size: 1.0625rem;
 }
 
 .btn-quiet {
@@ -263,6 +303,21 @@ p {
 	content: '';
 	flex: 1;
 	border-top: 1px solid var(--hairline);
+}
+
+/* cadre produit — la capture d'app posée sur le blanc */
+.product-frame {
+	border-radius: clamp(0.625rem, 1.4vw, 1rem);
+	overflow: hidden;
+	border: 1px solid var(--hairline);
+	box-shadow: var(--shadow-frame);
+	background: var(--surface);
+	line-height: 0;
+}
+
+.product-frame img {
+	width: 100%;
+	display: block;
 }
 
 /* accessibilité */

@@ -9,6 +9,12 @@
 		type HistoryEntry
 	} from '$lib/history';
 	import { fmtClock, fmtDay, fmtDuration, fmtSeconds, dayGroup } from '$lib/format';
+	import {
+		startRecording,
+		recordingSupported,
+		RecorderError,
+		type RecorderHandle
+	} from '$lib/recorder';
 	import Icon from '$lib/components/Icon.svelte';
 
 	type Phase = 'idle' | 'uploading' | 'transcribing' | 'correcting' | 'done' | 'error';
@@ -36,6 +42,86 @@
 	let abortCurrent: (() => void) | null = null;
 	let correctTimer: ReturnType<typeof setTimeout> | null = null;
 	let copyTimer: ReturnType<typeof setTimeout> | null = null;
+
+	/* ---------- dictée au micro ---------- */
+	const REC_MAX_S = 900; // 15 min — protège la batterie et l'upload
+	const REC_BARS = 30;
+
+	let mode = $state<'mic' | 'upload'>('mic');
+	let micSupported = $state(true);
+	let recording = $state(false);
+	let recSeconds = $state(0);
+	let recLevels = $state<number[]>(Array.from({ length: REC_BARS }, () => 0));
+	let micErrorKey = $state<string | null>(null);
+
+	let rec: RecorderHandle | null = null;
+	let recTimer: ReturnType<typeof setInterval> | null = null;
+	let recStartTs = 0;
+
+	$effect(() => {
+		micSupported = recordingSupported();
+		if (!micSupported) mode = 'upload';
+	});
+
+	/* micro coupé proprement si on quitte la page en enregistrant */
+	$effect(() => {
+		return () => discardMic();
+	});
+
+	async function startMic() {
+		if (busy || recording) return;
+		micErrorKey = null;
+		try {
+			const handle = await startRecording((lvl) => {
+				recLevels = [...recLevels.slice(1), lvl];
+			});
+			rec = handle;
+			recording = true;
+			recSeconds = 0;
+			recStartTs = Date.now();
+			recLevels = Array.from({ length: REC_BARS }, () => 0);
+			recTimer = setInterval(() => {
+				recSeconds = Math.floor((Date.now() - recStartTs) / 1000);
+				if (recSeconds >= REC_MAX_S) void stopMic();
+			}, 250);
+		} catch (e) {
+			micErrorKey =
+				e instanceof RecorderError
+					? e.kind === 'denied'
+						? 'errMicDenied'
+						: e.kind === 'unsupported'
+							? 'errMicUnsupported'
+							: 'errMicFailed'
+					: 'errMicFailed';
+		}
+	}
+
+	function stopRecTicker() {
+		if (recTimer) clearInterval(recTimer);
+		recTimer = null;
+	}
+
+	async function stopMic() {
+		if (!rec) return;
+		const handle = rec;
+		rec = null;
+		stopRecTicker();
+		recording = false;
+		try {
+			const file = await handle.stop();
+			await processFile(file);
+		} catch {
+			micErrorKey = 'errMicFailed';
+		}
+	}
+
+	function discardMic() {
+		if (!rec) return;
+		rec.discard();
+		rec = null;
+		stopRecTicker();
+		recording = false;
+	}
 
 	const busy = $derived(
 		phase === 'uploading' || phase === 'transcribing' || phase === 'correcting'
@@ -308,13 +394,81 @@
 	<section class="stage" aria-label={t('tool.metaTitle')}>
 		{#if phase === 'idle'}
 			<div class="invite">
-				<button type="button" class="dropzone" onclick={openPicker} aria-label={t('tool.dropAria')}>
-					<span class="drop-icon"><Icon name="drop" size={26} /></span>
-					<span class="invite-title">{t('tool.emptyTitle')}</span>
-					<span class="invite-sub">{t('tool.emptySub')}</span>
-					<span class="invite-hint tnum">{t('tool.emptyHint')}</span>
-				</button>
-				<div class="controls">
+				{#if micSupported}
+					<div
+						class="modes"
+						role="radiogroup"
+						aria-label="{t('tool.modeMic')} / {t('tool.modeUpload')}"
+					>
+						<label class="mode" class:active={mode === 'mic'}>
+							<input type="radio" name="mode" value="mic" bind:group={mode} disabled={recording} />
+							<Icon name="mic" size={16} />
+							<span>{t('tool.modeMic')}</span>
+						</label>
+						<label class="mode" class:active={mode === 'upload'}>
+							<input
+								type="radio"
+								name="mode"
+								value="upload"
+								bind:group={mode}
+								disabled={recording}
+							/>
+							<Icon name="drop" size={16} />
+							<span>{t('tool.modeUpload')}</span>
+						</label>
+					</div>
+				{/if}
+
+				{#if micSupported && mode === 'mic'}
+					<div class="micbox" aria-live="polite">
+						{#if recording}
+							<div class="capsule" role="status" aria-label={t('tool.micRecording')}>
+								<span class="cap-lang">{language}</span>
+								<span class="cap-wave" aria-hidden="true">
+									{#each recLevels as l, i (i)}
+										<span class="cap-bar" style:height="{Math.max(9, Math.round(l * 100))}%"
+										></span>
+									{/each}
+								</span>
+								<span class="cap-time tnum">{fmtDuration(recSeconds)}</span>
+							</div>
+							<button type="button" class="recbtn stop" onclick={stopMic}>
+								<Icon name="stop" size={28} />
+								<span class="visually-hidden">{t('tool.micStop')}</span>
+							</button>
+							<p class="mic-title">{t('tool.micStop')}</p>
+							<button type="button" class="btn-text" onclick={discardMic}>
+								{t('tool.micDiscard')}
+							</button>
+						{:else}
+							<button type="button" class="recbtn" onclick={startMic}>
+								<Icon name="mic" size={34} />
+								<span class="visually-hidden">{t('tool.micStartAria')}</span>
+							</button>
+							<p class="mic-title">{t('tool.micTitle')}</p>
+							<p class="mic-hint">{t('tool.micHint')} {t('tool.micLimit')}</p>
+							{#if micErrorKey}
+								<p class="mic-error" role="alert">{t(`tool.${micErrorKey}`)}</p>
+							{/if}
+						{/if}
+					</div>
+				{:else}
+					<button
+						type="button"
+						class="dropzone"
+						onclick={openPicker}
+						aria-label={t('tool.dropAria')}
+					>
+						<span class="drop-icon"><Icon name="drop" size={26} /></span>
+						<span class="invite-title">{t('tool.emptyTitle')}</span>
+						<span class="invite-sub">{t('tool.emptySub')}</span>
+						<span class="invite-hint tnum">{t('tool.emptyHint')}</span>
+					</button>
+					{#if !micSupported && micErrorKey}
+						<p class="mic-error" role="alert">{t(`tool.${micErrorKey}`)}</p>
+					{/if}
+				{/if}
+				<div class="controls" class:dim={recording}>
 					<div class="control">
 						<span class="kicker control-label" id="lang-label">{t('tool.langLabel')}</span>
 						<div class="segmented" role="radiogroup" aria-labelledby="lang-label">
@@ -599,6 +753,195 @@
 		font-size: 0.75rem;
 		color: var(--ink-3);
 		margin-top: 0.625rem;
+	}
+
+	/* ---------- sélecteur de mode ---------- */
+	.modes {
+		display: inline-flex;
+		gap: 0.25rem;
+		padding: 0.25rem;
+		background: var(--surface-2);
+		border: 1px solid var(--hairline);
+		border-radius: 999px;
+	}
+
+	.mode {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		min-height: 2.5rem;
+		padding: 0.375rem 1.25rem;
+		border-radius: 999px;
+		font-size: 0.875rem;
+		font-weight: 560;
+		color: var(--ink-2);
+		cursor: pointer;
+		transition:
+			background-color var(--motion-micro),
+			color var(--motion-micro),
+			box-shadow var(--motion-micro);
+	}
+
+	.mode:hover {
+		color: var(--ink);
+	}
+
+	.mode.active {
+		background: var(--surface);
+		color: var(--gorri);
+		box-shadow: var(--shadow-card);
+	}
+
+	.mode input {
+		position: absolute;
+		inset: 0;
+		opacity: 0;
+		margin: 0;
+		cursor: pointer;
+	}
+
+	.mode:has(input:focus-visible) {
+		outline: 2px solid var(--gorri);
+		outline-offset: 2px;
+	}
+
+	.mode:has(input:disabled) {
+		cursor: default;
+		opacity: 0.6;
+	}
+
+	/* ---------- dictée au micro ---------- */
+	.micbox {
+		width: 100%;
+		max-width: var(--measure);
+		min-height: 16.5rem;
+		display: grid;
+		justify-items: center;
+		align-content: center;
+		gap: 1rem;
+		padding: clamp(1.5rem, 4vw, 2.5rem) 1.5rem;
+		border: 1px solid var(--hairline);
+		border-radius: 1.25rem;
+		background: var(--surface);
+	}
+
+	.recbtn {
+		display: grid;
+		place-items: center;
+		width: 5.5rem;
+		height: 5.5rem;
+		border-radius: 50%;
+		background: var(--fill-red);
+		color: var(--on-red);
+		box-shadow: var(--shadow-card);
+		transition:
+			background-color var(--motion-micro),
+			transform var(--motion-micro);
+	}
+
+	.recbtn:hover {
+		background: var(--fill-red-hover);
+	}
+
+	.recbtn:active {
+		transform: scale(0.96);
+	}
+
+	.recbtn.stop {
+		animation: rec-pulse 1800ms ease-out infinite;
+	}
+
+	@keyframes rec-pulse {
+		0% {
+			box-shadow: 0 0 0 0 var(--gorri-24);
+		}
+		70% {
+			box-shadow: 0 0 0 1.125rem transparent;
+		}
+		100% {
+			box-shadow: 0 0 0 0 transparent;
+		}
+	}
+
+	.mic-title {
+		font-family: var(--font-read);
+		font-optical-sizing: auto;
+		font-size: 1.1875rem;
+		color: var(--ink);
+	}
+
+	.mic-hint {
+		font-size: 0.8125rem;
+		color: var(--ink-3);
+		max-width: 40ch;
+		text-align: center;
+		line-height: 1.55;
+		margin-top: -0.375rem;
+	}
+
+	.mic-error {
+		font-size: 0.875rem;
+		line-height: 1.55;
+		color: var(--error);
+		max-width: 44ch;
+		text-align: center;
+	}
+
+	/* la capsule — l'ADN du HUD de l'app */
+	.capsule {
+		display: flex;
+		align-items: center;
+		gap: 0.875rem;
+		width: min(21rem, 100%);
+		min-height: 3.25rem;
+		padding: 0.5rem 1.125rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--gorri) 6%, var(--surface));
+		border: 1px solid var(--gorri-12);
+		box-shadow: var(--shadow-float);
+	}
+
+	.cap-lang {
+		font-size: 0.625rem;
+		font-weight: 650;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--gorri);
+		background: var(--gorri-12);
+		border-radius: 0.25rem;
+		padding: 0.125rem 0.375rem;
+		flex: none;
+	}
+
+	.cap-wave {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1.5px;
+		height: 1.875rem;
+	}
+
+	.cap-bar {
+		flex: 1;
+		max-width: 3.5px;
+		min-height: 2px;
+		border-radius: 2px;
+		background: var(--gorri-bizi);
+		transition: height 70ms linear;
+	}
+
+	.cap-time {
+		font-size: 0.8125rem;
+		color: var(--ink-2);
+		flex: none;
+	}
+
+	.controls.dim {
+		opacity: 0.45;
+		pointer-events: none;
 	}
 
 	/* ---------- contrôles ---------- */
