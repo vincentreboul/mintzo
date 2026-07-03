@@ -367,7 +367,7 @@ xcodegen generate</code></pre>
 	}
 
 	.hud-panel img {
-		width: min(30rem, 100%);
+		width: min(33rem, 100%);
 		height: auto;
 	}
 
