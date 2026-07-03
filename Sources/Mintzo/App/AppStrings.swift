@@ -1,0 +1,60 @@
+import Foundation
+import MintzoCore
+
+// Microcopy du coordinator (erreurs HUD, replis) — design-language §9.1/§9.2 :
+// sobre, zéro point d'exclamation, formes courtes pour la capsule d'erreur
+// (largeur plafonnée à 320 pt). Résolution de langue partagée avec MzStrings.
+
+enum AppStrings {
+
+    private static func pick(_ eu: String, _ fr: String, _ en: String) -> String {
+        switch MzStrings.ui {
+        case .eu: eu
+        case .fr: fr
+        case .en: en
+        }
+    }
+
+    /// Modèle de la langue demandée absent (§9.2 « eredua falta da », forme courte HUD).
+    static func modelMissing(for language: Language) -> String {
+        switch language {
+        case .basque:
+            pick("Euskarazko eredua falta da.",
+                 "Le modèle basque n'est pas installé.",
+                 "The Basque model isn't installed.")
+        case .french:
+            pick("Frantsesezko eredua falta da.",
+                 "Le modèle français n'est pas installé.",
+                 "The French model isn't installed.")
+        }
+    }
+
+    /// Permission micro absente ou refusée (§9.2, forme titre).
+    static var microphoneNeeded: String {
+        pick("Mikrofonoa behar dugu.",
+             "Le micro est nécessaire.",
+             "Microphone needed.")
+    }
+
+    /// La capture n'a pas démarré (device/engine).
+    static var captureFailed: String {
+        pick("Mikrofonoak huts egin du.",
+             "Le micro n'a pas démarré.",
+             "Microphone failed to start.")
+    }
+
+    /// La transcription a échoué (le détail technique part dans le log, pas le HUD).
+    static var transcriptionFailed: String {
+        pick("Transkripzioak huts egin du.",
+             "La transcription a échoué.",
+             "Transcription failed.")
+    }
+
+    /// Texte livré sur le clipboard seulement (repli ou mode choisi) — le HUD ne
+    /// porte un message custom que via l'état erreur (limite d'API notée au rapport).
+    static var textOnClipboard: String {
+        pick("Testua arbelean dago — sakatu ⌘V.",
+             "Texte dans le presse-papiers — collez avec ⌘V.",
+             "Text on the clipboard — press ⌘V.")
+    }
+}
