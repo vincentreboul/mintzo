@@ -104,6 +104,7 @@
 		"phaseUploading": "Envoi…",
 		"phaseTranscribing": "Transcription…",
 		"phaseCorrecting": "Correction…",
+		"wakeHint": "Le serveur se réveille — la première demande peut prendre une minute.",
 		"cancel": "Annuler",
 		"original": "original",
 		"corrected": "corrigé",

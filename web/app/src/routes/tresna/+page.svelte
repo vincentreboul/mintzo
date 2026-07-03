@@ -43,6 +43,11 @@
 	let correctTimer: ReturnType<typeof setTimeout> | null = null;
 	let copyTimer: ReturnType<typeof setTimeout> | null = null;
 
+	/* réveil du serveur (GPU serverless) : au-delà du délai attendu,
+	   on le dit honnêtement au lieu de laisser la barre muette */
+	let wakeHint = $state(false);
+	let wakeTimer: ReturnType<typeof setTimeout> | null = null;
+
 	/* ---------- dictée au micro ---------- */
 	const REC_MAX_S = 900; // 15 min — protège la batterie et l'upload
 	const REC_BARS = 30;
@@ -215,10 +220,19 @@
 		const wantCorrect = correct;
 		const lang = language;
 		probeDuration(file).then((dur) => {
+			// au-delà du délai attendu pour cette durée d'audio, le serveur
+			// est sans doute en train de se réveiller : on l'affiche.
+			const wakeMs = Math.max(10_000, dur ? dur * 450 + 8_000 : 10_000);
+			wakeTimer = setTimeout(() => {
+				if (phase === 'transcribing' || phase === 'correcting') {
+					wakeHint = true;
+					if (phase === 'correcting') phase = 'transcribing';
+				}
+			}, wakeMs);
 			if (!wantCorrect) return;
 			const estMs = dur ? Math.min(90_000, Math.max(4_000, dur * 450)) : 12_000;
 			correctTimer = setTimeout(() => {
-				if (phase === 'transcribing') phase = 'correcting';
+				if (phase === 'transcribing' && !wakeHint) phase = 'correcting';
 			}, estMs);
 		});
 
@@ -269,6 +283,9 @@
 		} finally {
 			if (correctTimer) clearTimeout(correctTimer);
 			correctTimer = null;
+			if (wakeTimer) clearTimeout(wakeTimer);
+			wakeTimer = null;
+			wakeHint = false;
 			abortCurrent = null;
 		}
 	}
@@ -507,6 +524,9 @@
 						style:width={phase === 'uploading' ? `${Math.max(2, progress * 100)}%` : '100%'}
 					></div>
 				</div>
+				{#if wakeHint}
+					<p class="wake-note" role="status">{t('tool.wakeHint')}</p>
+				{/if}
 				<button type="button" class="btn-text cancel" onclick={cancel}>{t('tool.cancel')}</button>
 			</div>
 		{:else if phase === 'error'}
@@ -751,7 +771,7 @@
 
 	.invite-hint {
 		font-size: 0.75rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		margin-top: 0.625rem;
 	}
 
@@ -874,7 +894,7 @@
 
 	.mic-hint {
 		font-size: 0.8125rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 		max-width: 40ch;
 		text-align: center;
 		line-height: 1.55;
@@ -1129,6 +1149,13 @@
 		padding: 0.375rem 0;
 	}
 
+	.wake-note {
+		font-size: 0.8125rem;
+		line-height: 1.55;
+		color: var(--ink-2);
+		animation: overlay-in 400ms cubic-bezier(0.2, 0.7, 0.3, 1);
+	}
+
 	/* ---------- erreur ---------- */
 	.errorbox {
 		max-width: var(--measure);
@@ -1241,7 +1268,7 @@
 	.journal-note {
 		margin-top: 0.75rem;
 		font-size: 0.75rem;
-		color: var(--ink-3);
+		color: var(--ink-2);
 	}
 
 	.journal-empty {
