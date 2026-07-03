@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { t } from '$lib/i18n/index.svelte';
-	import Seismograph from '$lib/components/Seismograph.svelte';
 	import {
 		GITHUB_URL,
 		COMMON_VOICE_URL,
@@ -9,6 +8,11 @@
 		WHISPER_CPP_URL,
 		LLAMA_CPP_URL
 	} from '$lib/links';
+
+	/* barres décoratives du vocal — dessin fixe, calme */
+	const waveBars = [
+		5, 9, 14, 8, 12, 17, 10, 6, 13, 16, 9, 5, 11, 15, 8, 12, 6, 10, 14, 7, 5, 8, 4, 6
+	];
 </script>
 
 <svelte:head>
@@ -16,48 +20,128 @@
 	<meta name="description" content={t('home.metaDescription')} />
 </svelte:head>
 
-<div class="shell">
-	<!-- ============ Hero ============ -->
-	<section class="hero">
-		<div class="hero-main">
-			<h1 class="wordmark">Mintzo</h1>
-			<div class="seismo-row">
-				<Seismograph />
+<!-- ============ Hero : la promesse + le produit ============ -->
+<section class="hero">
+	<div class="shell hero-copy">
+		<p class="kicker hero-kicker rise" style="--d: 0ms">{t('home.heroKicker')}</p>
+		<h1 class="display hero-title rise" style="--d: 60ms">{t('home.heroTitle')}</h1>
+		<p class="hero-sub rise" style="--d: 120ms">{t('home.heroSub')}</p>
+		<div class="ctas rise" style="--d: 180ms">
+			<a class="btn btn-primary btn-lg" href="/tresna">{t('home.ctaTool')}</a>
+			<a class="btn btn-quiet btn-lg" href="#mac">{t('home.ctaMac')}</a>
+		</div>
+	</div>
+	<div class="shell stage-wrap rise" style="--d: 260ms">
+		<div class="stage">
+			<div class="product-frame">
+				<picture>
+					<source srcset="/screenshots/window-eu-dark.png" media="(prefers-color-scheme: dark)" />
+					<img
+						src="/screenshots/window-eu-light.png"
+						alt={t('home.windowAlt')}
+						width="1520"
+						height="1224"
+						fetchpriority="high"
+					/>
+				</picture>
 			</div>
-			<p class="tagline">{t('home.tagline')}</p>
-			<p class="sub">{t('home.sub')}</p>
-			<div class="ctas">
-				<a class="btn btn-primary" href="/tresna">{t('home.ctaTool')}</a>
-				<a class="btn btn-quiet" href="#mac">{t('home.ctaMac')}<span aria-hidden="true"> ↓</span></a>
+			<img
+				class="hud-float"
+				src="/screenshots/hud-listening.png"
+				alt=""
+				aria-hidden="true"
+				width="840"
+				height="220"
+			/>
+		</div>
+	</div>
+</section>
+
+<!-- ============ Diktaketa kurtsorean ============ -->
+<section class="feature">
+	<div class="shell feature-grid">
+		<div class="feature-copy">
+			<p class="kicker accent">{t('home.dictKicker')}</p>
+			<h2 class="display feature-title">{t('home.dictTitle')}</h2>
+			<p class="feature-body">{t('home.dictBody')}</p>
+		</div>
+		<figure class="panel hud-panel">
+			<img
+				src="/screenshots/hud-listening.png"
+				alt={t('home.hudAlt')}
+				width="840"
+				height="220"
+				loading="lazy"
+			/>
+			<figcaption class="panel-caption">{t('home.dictCaption')}</figcaption>
+		</figure>
+	</div>
+</section>
+
+<!-- ============ Ahots-mezuak → testua ============ -->
+<section class="feature">
+	<div class="shell feature-grid flip">
+		<div class="feature-copy">
+			<p class="kicker accent">{t('home.voiceKicker')}</p>
+			<h2 class="display feature-title">{t('home.voiceTitle')}</h2>
+			<p class="feature-body">{t('home.voiceBody')}</p>
+		</div>
+		<div class="panel chat-panel" aria-hidden="true">
+			<div class="chat-in">
+				<span class="chat-wave">
+					{#each waveBars as h, i (i)}
+						<span class="chat-bar" style="height: {h}px"></span>
+					{/each}
+				</span>
+				<span class="chat-dur tnum">0:42</span>
+			</div>
+			<p class="chat-name">{t('home.voiceDemoName')}</p>
+			<div class="chat-link">
+				<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M12 4v14" />
+					<path d="M6.5 12.5L12 18l5.5-5.5" />
+				</svg>
+				<span class="kicker">{t('home.voiceDemoLabel')}</span>
+			</div>
+			<div class="chat-out">
+				<p class="read chat-text">{t('home.voiceDemoOut')}</p>
+				<p class="chat-meta">
+					<span class="tnum">0:42</span>
+					<span class="chat-dot">·</span>
+					<span class="chat-lang">{t('home.voiceDemoLang')}</span>
+				</p>
 			</div>
 		</div>
-		<aside class="hero-notes">
-			<p class="kicker langs-note">eu · fr</p>
-			<p class="note">{t('home.macPrivacy')}</p>
-		</aside>
-	</section>
+	</div>
+</section>
 
-	<!-- ============ La promesse en 3 blocs ============ -->
-	<section class="promises">
-		<article>
-			<p class="kicker accent">{t('home.b1Kicker')}</p>
-			<h2 class="display block-title">{t('home.b1Title')}</h2>
-			<p class="block-body">{t('home.b1Body')}</p>
-		</article>
-		<article>
-			<p class="kicker accent">{t('home.b2Kicker')}</p>
-			<h2 class="display block-title">{t('home.b2Title')}</h2>
-			<p class="block-body">{t('home.b2Body')}</p>
-		</article>
-		<article>
-			<p class="kicker accent">{t('home.b3Kicker')}</p>
-			<h2 class="display block-title">{t('home.b3Title')}</h2>
-			<p class="block-body">{t('home.b3Body')}</p>
-		</article>
-	</section>
+<!-- ============ % 100 lokala — bloc rouge ============ -->
+<section class="local">
+	<span class="local-mark" aria-hidden="true"></span>
+	<div class="shell local-inner">
+		<p class="kicker local-kicker">{t('home.localKicker')}</p>
+		<h2 class="display local-title">{t('home.localTitle')}</h2>
+		<p class="local-body">{t('home.localBody')}</p>
+		<a class="local-link" href="/pribatutasuna">{t('home.localLink')}</a>
+	</div>
+</section>
 
-	<!-- ============ Nola dabilen ============ -->
-	<section class="how">
+<!-- ============ Tresna — CTA fort ============ -->
+<section class="toolcta">
+	<div class="shell">
+		<div class="panel toolcta-panel">
+			<p class="kicker accent">{t('home.toolKicker')}</p>
+			<h2 class="display toolcta-title">{t('home.toolTitle')}</h2>
+			<p class="toolcta-body">{t('home.toolBody')}</p>
+			<a class="btn btn-primary btn-lg" href="/tresna">{t('home.toolCta')}</a>
+			<p class="toolcta-free">{t('home.toolFree')}</p>
+		</div>
+	</div>
+</section>
+
+<!-- ============ Nola dabilen ============ -->
+<section class="how">
+	<div class="shell">
 		<h2 class="section-head"><span class="kicker">{t('home.howHead')}</span></h2>
 		<div class="steps">
 			<div class="step">
@@ -76,16 +160,17 @@
 				<p class="step-desc">{t('home.how3Desc')}</p>
 			</div>
 		</div>
-	</section>
+	</div>
+</section>
 
-	<!-- ============ Mac aplikazioa ============ -->
-	<section class="mac" id="mac">
+<!-- ============ Mac aplikazioa ============ -->
+<section class="mac" id="mac">
+	<div class="shell">
 		<h2 class="section-head"><span class="kicker">{t('home.macHead')}</span></h2>
 		<div class="mac-body">
 			<div class="mac-text">
 				<p class="display mac-status">{t('home.macStatus')}</p>
 				<p class="mac-req">{t('home.macBody')}</p>
-				<blockquote class="mac-privacy read">{t('home.macPrivacy')}</blockquote>
 				<!-- TODO-URL -->
 				<a class="btn btn-quiet mac-cta" href={GITHUB_URL} rel="noopener">
 					{t('home.macGithub')}<span aria-hidden="true"> ↗</span>
@@ -100,10 +185,12 @@ xcodegen generate</code></pre>
 				<p class="build-hint">{t('home.macBuildHint')}</p>
 			</div>
 		</div>
-	</section>
+	</div>
+</section>
 
-	<!-- ============ Kredituak ============ -->
-	<section class="credits">
+<!-- ============ Kredituak ============ -->
+<section class="credits">
+	<div class="shell">
 		<h2 class="section-head"><span class="kicker">{t('home.creditsHead')}</span></h2>
 		<p class="credits-intro">{t('home.creditsIntro')}</p>
 		<ul class="credit-list">
@@ -131,154 +218,386 @@ xcodegen generate</code></pre>
 				<span class="credit-desc">{t('home.creditGgmlDesc')}</span>
 			</li>
 		</ul>
-	</section>
-</div>
+	</div>
+</section>
 
 <style>
+	/* ---------- entrée en scène ---------- */
+	.rise {
+		animation: rise 640ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+		animation-delay: var(--d, 0ms);
+	}
+
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
 	/* ---------- hero ---------- */
 	.hero {
+		padding-block: clamp(3.5rem, 8vw, 6.5rem) 0;
+		overflow: hidden;
+	}
+
+	.hero-copy {
 		display: grid;
-		grid-template-columns: 1fr auto;
-		align-items: end;
-		gap: 3rem;
-		padding-block: clamp(3.5rem, 9vw, 7rem) clamp(3.5rem, 8vw, 6rem);
+		justify-items: center;
+		text-align: center;
 	}
 
-	.wordmark {
-		font-family: var(--font-display);
-		font-optical-sizing: auto;
-		font-weight: 900;
-		font-size: clamp(4.75rem, 13vw, 10.5rem);
-		line-height: 0.95;
-		letter-spacing: -0.015em;
-		margin-left: -0.04em;
-		color: var(--ink);
+	.hero-kicker {
+		color: var(--gorri);
 	}
 
-	.seismo-row {
-		margin-top: clamp(1.5rem, 3vw, 2.25rem);
+	.hero-title {
+		font-size: clamp(2.875rem, 8.5vw, 5.75rem);
+		font-weight: 660;
+		max-width: 16ch;
+		margin-top: 1.125rem;
 	}
 
-	.tagline {
-		font-family: var(--font-read);
-		font-optical-sizing: auto;
-		font-size: clamp(1.25rem, 2.2vw, 1.5rem);
-		line-height: 1.45;
-		max-width: 30ch;
-		margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
-	}
-
-	.sub {
+	.hero-sub {
 		color: var(--ink-2);
-		font-size: 1rem;
-		line-height: 1.6;
-		max-width: 52ch;
-		margin-top: 0.875rem;
+		font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+		line-height: 1.55;
+		max-width: 44ch;
+		margin-top: 1.375rem;
+		text-wrap: balance;
 	}
 
 	.ctas {
 		display: flex;
-		gap: 0.75rem;
+		gap: 0.875rem;
 		flex-wrap: wrap;
+		justify-content: center;
 		margin-top: 2.25rem;
 	}
 
-	.hero-notes {
-		border-left: 1px solid var(--hairline);
-		padding-left: 1.5rem;
-		max-width: 13rem;
-		padding-bottom: 0.375rem;
+	/* la scène produit : fenêtre + capsule flottante */
+	.stage-wrap {
+		max-width: 66rem;
 	}
 
-	.langs-note {
-		color: var(--gorri);
+	.stage {
+		position: relative;
+		margin-top: clamp(3rem, 7vw, 5.5rem);
+		padding-bottom: clamp(2.5rem, 5vw, 4rem);
 	}
 
-	.note {
-		margin-top: 0.875rem;
-		font-size: 0.8125rem;
-		line-height: 1.55;
-		color: var(--ink-3);
+	.hud-float {
+		position: absolute;
+		left: 50%;
+		bottom: 0;
+		width: min(26rem, 58%);
+		height: auto;
+		transform: translate(-50%, 8%);
+		animation: hud-breath var(--motion-breath) ease-in-out infinite alternate;
+		pointer-events: none;
 	}
 
-	/* ---------- blocs promesse ---------- */
-	.promises {
+	@keyframes hud-breath {
+		from {
+			transform: translate(-50%, 8%);
+		}
+		to {
+			transform: translate(-50%, 3%);
+		}
+	}
+
+	/* ---------- sections feature ---------- */
+	.feature {
+		padding-block: clamp(3.5rem, 8vw, 6.5rem);
+	}
+
+	.feature + .feature {
+		padding-top: 0;
+	}
+
+	.feature-grid {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		border-top: 1px solid var(--hairline);
-		padding-block: clamp(3rem, 6.5vw, 4.5rem);
+		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+		gap: clamp(2rem, 6vw, 5rem);
+		align-items: center;
 	}
 
-	.promises article {
-		padding-inline: 2rem;
-		border-left: 1px solid var(--hairline);
+	.feature-grid.flip {
+		grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
 	}
 
-	.promises article:first-child {
-		padding-left: 0;
-		border-left: none;
-	}
-
-	.promises article:last-child {
-		padding-right: 0;
+	.feature-grid.flip .feature-copy {
+		order: 2;
 	}
 
 	.accent {
 		color: var(--gorri);
 	}
 
-	.block-title {
-		font-size: 1.5rem;
+	.feature-title {
+		font-size: clamp(1.75rem, 3.4vw, 2.5rem);
 		margin-top: 0.875rem;
 	}
 
-	.block-body {
+	.feature-body {
 		color: var(--ink-2);
-		font-size: 0.9375rem;
+		font-size: 1.0625rem;
 		line-height: 1.65;
+		margin-top: 1rem;
+		max-width: 42ch;
+	}
+
+	/* panneau pierre commun aux visuels */
+	.panel {
+		background: var(--surface-2);
+		border: 1px solid var(--hairline);
+		border-radius: 1.25rem;
+		margin: 0;
+	}
+
+	.hud-panel {
+		display: grid;
+		justify-items: center;
+		gap: 0.25rem;
+		padding: clamp(1.75rem, 4vw, 3rem) clamp(1rem, 3vw, 2.5rem);
+	}
+
+	.hud-panel img {
+		width: min(30rem, 100%);
+		height: auto;
+	}
+
+	.panel-caption {
+		font-size: 0.8125rem;
+		color: var(--ink-3);
+		text-align: center;
+		max-width: 38ch;
+		line-height: 1.55;
+	}
+
+	/* ---------- mockup vocal ---------- */
+	.chat-panel {
+		display: grid;
+		justify-items: start;
+		padding: clamp(1.75rem, 4vw, 2.75rem);
+	}
+
+	.chat-in {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.875rem;
+		background: var(--surface);
+		border: 1px solid var(--hairline);
+		border-radius: 1.125rem 1.125rem 1.125rem 0.25rem;
+		padding: 0.875rem 1.125rem;
+		box-shadow: var(--shadow-card);
+	}
+
+	.chat-wave {
+		display: inline-flex;
+		align-items: center;
+		gap: 2.5px;
+	}
+
+	.chat-bar {
+		width: 2.5px;
+		border-radius: 1.25px;
+		background: var(--ink-3);
+	}
+
+	.chat-dur {
+		font-size: 0.75rem;
+		color: var(--ink-2);
+	}
+
+	.chat-name {
+		margin-top: 0.5rem;
+		font-size: 0.6875rem;
+		color: var(--ink-3);
+	}
+
+	.chat-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--gorri);
+		margin-block: 1.125rem;
+	}
+
+	.chat-out {
+		justify-self: stretch;
+		background: var(--surface);
+		border: 1px solid var(--hairline);
+		border-radius: 0.875rem;
+		padding: 1.125rem 1.25rem;
+		box-shadow: var(--shadow-card);
+	}
+
+	.chat-text {
+		font-size: 0.9688rem;
+		line-height: 1.6;
+	}
+
+	.chat-meta {
+		display: flex;
+		align-items: center;
+		gap: 0.4375rem;
 		margin-top: 0.75rem;
-		max-width: 36ch;
+		font-size: 0.6875rem;
+		color: var(--ink-2);
+	}
+
+	.chat-dot {
+		color: var(--ink-3);
+	}
+
+	.chat-lang {
+		font-size: 0.625rem;
+		font-weight: 650;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--gorri);
+		background: var(--gorri-12);
+		border-radius: 0.25rem;
+		padding: 0.0625rem 0.375rem;
+	}
+
+	/* ---------- bloc rouge : le moment de marque ---------- */
+	.local {
+		position: relative;
+		background: var(--fill-red);
+		color: var(--on-red);
+		padding-block: clamp(4.5rem, 10vw, 8rem);
+		overflow: hidden;
+	}
+
+	.local-mark {
+		position: absolute;
+		right: -8rem;
+		top: 50%;
+		width: clamp(24rem, 44vw, 36rem);
+		aspect-ratio: 1;
+		transform: translateY(-50%) rotate(12deg);
+		background: currentColor;
+		opacity: 0.1;
+		mask: url('/brand/lauburu.svg') no-repeat center / contain;
+		-webkit-mask: url('/brand/lauburu.svg') no-repeat center / contain;
+		pointer-events: none;
+	}
+
+	.local-inner {
+		position: relative;
+		display: grid;
+		justify-items: start;
+	}
+
+	.local-kicker {
+		color: var(--on-red-soft);
+	}
+
+	.local-title {
+		font-size: clamp(2rem, 5.5vw, 3.75rem);
+		max-width: 18ch;
+		margin-top: 1.125rem;
+	}
+
+	.local-body {
+		color: var(--on-red-soft);
+		font-size: 1.0625rem;
+		line-height: 1.65;
+		max-width: 56ch;
+		margin-top: 1.25rem;
+	}
+
+	.local-link {
+		margin-top: 1.75rem;
+		color: var(--on-red);
+		font-size: 0.9375rem;
+		font-weight: 560;
+		text-decoration-color: var(--on-red-soft);
+	}
+
+	.local-link:hover {
+		text-decoration-color: var(--on-red);
+	}
+
+	/* ---------- CTA outil ---------- */
+	.toolcta {
+		padding-block: clamp(3.5rem, 8vw, 6.5rem) 0;
+	}
+
+	.toolcta-panel {
+		display: grid;
+		justify-items: center;
+		text-align: center;
+		padding: clamp(3rem, 7vw, 5.5rem) clamp(1.5rem, 5vw, 4rem);
+	}
+
+	.toolcta-title {
+		font-size: clamp(1.875rem, 4vw, 2.875rem);
+		margin-top: 1rem;
+		max-width: 22ch;
+	}
+
+	.toolcta-body {
+		color: var(--ink-2);
+		font-size: 1.0625rem;
+		line-height: 1.6;
+		max-width: 48ch;
+		margin-top: 1rem;
+	}
+
+	.toolcta-panel .btn {
+		margin-top: 2rem;
+	}
+
+	.toolcta-free {
+		margin-top: 0.875rem;
+		font-size: 0.8125rem;
+		color: var(--ink-3);
 	}
 
 	/* ---------- nola dabilen ---------- */
 	.how,
 	.mac,
 	.credits {
-		padding-block: clamp(2.75rem, 6vw, 4.5rem);
+		padding-block: clamp(3rem, 7vw, 5rem) 0;
 	}
 
 	.steps {
-		margin-top: 2rem;
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: clamp(1.5rem, 4vw, 3rem);
+		margin-top: 2.25rem;
 	}
 
 	.step {
 		display: grid;
-		grid-template-columns: 3.5rem 15rem 1fr;
-		align-items: baseline;
-		gap: 1.5rem;
-		padding-block: 1.375rem;
-	}
-
-	.step + .step {
-		border-top: 1px solid var(--hairline);
+		gap: 0.5rem;
+		align-content: start;
 	}
 
 	.num {
 		font-family: var(--font-display);
 		font-optical-sizing: auto;
 		font-weight: 560;
-		font-size: 1.25rem;
+		font-size: 1.125rem;
 		color: var(--gorri);
 	}
 
 	.step-name {
-		font-size: 1.4375rem;
+		font-size: 1.375rem;
 	}
 
 	.step-desc {
 		color: var(--ink-2);
 		font-size: 0.9375rem;
 		line-height: 1.6;
+		max-width: 34ch;
 	}
 
 	/* ---------- mac ---------- */
@@ -286,7 +605,7 @@ xcodegen generate</code></pre>
 		display: grid;
 		grid-template-columns: 1.1fr 0.9fr;
 		gap: clamp(2rem, 5vw, 4rem);
-		margin-top: 2rem;
+		margin-top: 2.25rem;
 		align-items: start;
 	}
 
@@ -303,14 +622,6 @@ xcodegen generate</code></pre>
 		max-width: 44ch;
 	}
 
-	.mac-privacy {
-		margin: 1.75rem 0 0;
-		padding-left: 1.125rem;
-		border-left: 2px solid var(--gorri);
-		font-size: 1.0625rem;
-		color: var(--ink);
-	}
-
 	.mac-cta {
 		margin-top: 1.75rem;
 	}
@@ -318,7 +629,8 @@ xcodegen generate</code></pre>
 	.build-card {
 		background: var(--surface);
 		border: 1px solid var(--hairline);
-		border-radius: 0.75rem;
+		border-radius: 1rem;
+		box-shadow: var(--shadow-card);
 		padding: 1.5rem;
 	}
 
@@ -383,36 +695,27 @@ xcodegen generate</code></pre>
 
 	/* ---------- responsive ---------- */
 	@media (max-width: 56rem) {
-		.hero {
+		.hero-title {
+			font-size: clamp(2.5rem, 11.5vw, 3.5rem);
+		}
+
+		.hud-float {
+			width: min(20rem, 74%);
+		}
+
+		.feature-grid,
+		.feature-grid.flip {
 			grid-template-columns: 1fr;
-			gap: 0;
+			gap: 1.75rem;
 		}
 
-		.hero-notes {
-			display: none;
+		.feature-grid.flip .feature-copy {
+			order: 0;
 		}
 
-		.promises {
+		.steps {
 			grid-template-columns: 1fr;
-			padding-block: 1rem 1.5rem;
-		}
-
-		.promises article {
-			padding: 1.75rem 0;
-			border-left: none;
-		}
-
-		.promises article + article {
-			border-top: 1px solid var(--hairline);
-		}
-
-		.step {
-			grid-template-columns: 2.75rem 1fr;
-			row-gap: 0.375rem;
-		}
-
-		.step-desc {
-			grid-column: 2;
+			gap: 1.75rem;
 		}
 
 		.mac-body {
@@ -422,6 +725,11 @@ xcodegen generate</code></pre>
 		.credit-list li {
 			grid-template-columns: 1fr;
 			gap: 0.25rem;
+		}
+
+		.local-mark {
+			right: -10rem;
+			opacity: 0.08;
 		}
 	}
 </style>
