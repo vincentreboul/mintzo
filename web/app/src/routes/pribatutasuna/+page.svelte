@@ -14,25 +14,13 @@
 	</header>
 
 	<section>
-		<h2 class="display sub">{t('privacy.s1Head')}</h2>
-		<p>{t('privacy.s1P1')}</p>
-		<p>{t('privacy.s1P2')}</p>
-		<p>{t('privacy.s1P3')}</p>
+		<h2 class="display sub">{t('privacy.macHead')}</h2>
+		<p>{t('privacy.macP1')}</p>
 	</section>
 
 	<section>
-		<h2 class="display sub">{t('privacy.s2Head')}</h2>
-		<p>{t('privacy.s2P1')}</p>
-	</section>
-
-	<section>
-		<h2 class="display sub">{t('privacy.s3Head')}</h2>
-		<p>{t('privacy.s3P1')}</p>
-	</section>
-
-	<section>
-		<h2 class="display sub">{t('privacy.s4Head')}</h2>
-		<p>{t('privacy.s4P1')}</p>
+		<h2 class="display sub">{t('privacy.cookiesHead')}</h2>
+		<p>{t('privacy.cookiesP1')}</p>
 	</section>
 
 	<p class="updated tnum">{t('privacy.updated')}</p>
