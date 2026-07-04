@@ -44,3 +44,11 @@ MERGE_GATE.md
 # Confidentiel — jamais dans le repo public
 docs/HANDOFF.md
 HANDOFF*.md
+
+# Notes internes de session — jamais dans le repo public.
+# Seul notes/research/ (documentation technique) reste suivi.
+notes/loop-state-*.md
+notes/*checkpoint*
+notes/*recap*
+notes/*verif*
+notes/handoffs/
