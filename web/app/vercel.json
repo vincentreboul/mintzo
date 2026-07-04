@@ -3,10 +3,5 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "cleanUrls": true,
-  "build": {
-    "env": {
-      "VITE_API_URL": "https://vincentreboul--mintzo-transcribe-web.modal.run"
-    }
-  }
+  "cleanUrls": true
 }
