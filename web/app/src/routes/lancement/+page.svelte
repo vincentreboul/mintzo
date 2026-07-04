@@ -25,8 +25,8 @@
 		<p>
 			Mintzo est une application de dictée et de transcription pour l’euskara et le français.
 			Sur Mac, une touche suffit : on parle, et le texte corrigé se pose au curseur, dans
-			n’importe quelle application. Un outil en ligne transcrit aussi les fichiers audio —
-			vocaux WhatsApp compris — directement depuis le navigateur.
+			n’importe quelle application. L’app transcrit aussi les fichiers audio — vocaux WhatsApp
+			compris — d’un simple glisser-déposer.
 		</p>
 
 		<h2 class="display sub">Pourquoi</h2>
@@ -85,8 +85,8 @@
 		<p>
 			Mintzo euskararako eta frantseserako diktaketa- eta transkripzio-aplikazio bat da.
 			Mac-ean, tekla bat aski da: hitz egin, eta testu zuzendua kurtsorean itsasten da, edozein
-			aplikaziotan. Lineako tresna batek audio-fitxategiak ere transkribatzen ditu — WhatsAppeko
-			ahots-mezuak barne — nabigatzailetik bertatik.
+			aplikaziotan. Aplikazioak audio-fitxategiak ere transkribatzen ditu — WhatsAppeko
+			ahots-mezuak barne — arrastatu eta jaso besterik ez da.
 		</p>
 
 		<h3 class="display sub">Zergatik</h3>
