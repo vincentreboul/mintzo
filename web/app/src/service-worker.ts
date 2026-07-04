@@ -70,9 +70,9 @@ sw.addEventListener('fetch', (event) => {
 			} catch {
 				const hit = await cache.match(request);
 				if (hit) return hit;
-				/* navigation hors connexion sans cache : l'outil est le foyer */
+				/* navigation hors connexion sans cache : repli sur l'accueil */
 				if (request.mode === 'navigate') {
-					const home = await cache.match('/tresna');
+					const home = await cache.match('/');
 					if (home) return home;
 				}
 				throw new Error('offline');

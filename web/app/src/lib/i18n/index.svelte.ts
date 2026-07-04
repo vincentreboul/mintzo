@@ -49,15 +49,13 @@ export function initLocale(): void {
 	document.documentElement.lang = l;
 }
 
-/** t('tool.copy') — repli sur eu, puis sur la clé elle-même. */
+/** t('home.ctaMac') — repli sur eu, puis sur la clé elle-même. */
 export function t(key: string, params?: Record<string, string | number>): string {
 	return tIn(current, key, params);
 }
 
 /**
  * Comme `t`, mais dans une langue EXPLICITE, indépendante de la langue d'UI.
- * Usage : les labels de phase de /tresna suivent la langue de TRANSCRIPTION
- * sélectionnée (« on parle en basque → “Transkribatzen…” »), pas l'UI.
  */
 export function tIn(
 	locale: Locale,
