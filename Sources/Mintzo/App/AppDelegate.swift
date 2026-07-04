@@ -74,6 +74,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ce label n'existe pas, la dictée doit fonctionner quand même.
         coordinator?.startServices()
 
+        // Menu principal dans la langue de l'app : macOS ne traduit pas les
+        // menus standard en euskara, et une app SwiftUI n'a pas de MainMenu.xib
+        // à localiser. Ré-appliqué à chaque fenêtre active (`windowDidBecomeKey`)
+        // car SwiftUI peut reconstruire le menu après le lancement.
+        MainMenuLocalizer.localize()
+
         #if DEBUG
         // Harnais QA (previews / snapshots) : pas de présentation parasite.
         let env = ProcessInfo.processInfo.environment
@@ -194,6 +200,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func windowDidBecomeKey(_ notification: Notification) {
+        // Toute fenêtre qui devient active : re-localiser le menu principal
+        // (SwiftUI a pu le reconstruire depuis le dernier passage).
+        MainMenuLocalizer.localize()
+
         guard let window = notification.object as? NSWindow,
               let identifier = window.identifier?.rawValue else { return }
         // SwiftUI nomme les fenêtres de scène `<sceneID>` ou `<sceneID>-AppWindow-<n>`.
