@@ -6,7 +6,7 @@
 
 *Proiektu esperimentala. Vincent Reboulek garatua, Isaak Elduaienekin ([@ixak](https://github.com/ixak)) elkarlanean: berea izan zen ideia, eta lehen bertsioa ontzat eman zuen.*
 
-**Webgunea eta lineako tresna : [www.mintzo.fr](https://www.mintzo.fr)** · **[Deskargatu Mac aplikazioa](https://github.com/vincentreboul/mintzo/releases/latest)**
+**Webgunea : [www.mintzo.fr](https://www.mintzo.fr)** · **[Deskargatu Mac aplikazioa](https://github.com/vincentreboul/mintzo/releases/latest)**
 
 ## Zer egiten duen
 
@@ -26,7 +26,7 @@ Euskarak lehen mailako tresnak merezi ditu — ingelesak eta frantsesak dituzten
 
 **Proiektu esperimentala, garapen aktiboan.** Isaak Elduaienen ideia batetik sortua eta Vincent Reboulek garatua, lehen bertsio hau kontzeptu-froga bat da, komunitateari irekia.
 
-**[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran macOS-ek blokeatzen du: Sistemaren ezarpenak › Pribatutasuna eta segurtasuna › « Ireki hala ere ». Lineako tresna: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+**[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran macOS-ek blokeatzen du: Sistemaren ezarpenak › Pribatutasuna eta segurtasuna › « Ireki hala ere ».
 
 Ekarpenak ongi etorriak dira; ikus [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -82,8 +82,7 @@ Baita [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) eta
 ## Bide-orria
 
 1. **V1 — Mac aplikazio natiboa** (orain eraikitzen): diktaketa, fitxategiak, historia.
-2. **2. fasea — webgunea**: audioa igo eta linean transkribatzeko; Windows erabiltzaileentzako lehen bidea.
-3. **3. fasea — Windows aplikazio natiboa**: motorrak eta ereduak (whisper.cpp, llama.cpp, GGML/GGUF) eramangarriak dira diseinuz, prest daude horretarako.
+2. **2. fasea — Windows aplikazio natiboa**: motorrak eta ereduak (whisper.cpp, llama.cpp, GGML/GGUF) eramangarriak dira diseinuz, prest daude horretarako.
 
 iOS ez dago gaur egungo bide-orrian.
 

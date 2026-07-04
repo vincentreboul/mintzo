@@ -6,7 +6,7 @@
 
 *Projet expérimental. Développé par Vincent Reboul, en partenariat avec [Isaak Elduaien](https://github.com/ixak), qui en a eu l'idée et validé la première version.*
 
-**Site et outil en ligne : [www.mintzo.fr](https://www.mintzo.fr)** · **[Télécharger l'app Mac](https://github.com/vincentreboul/mintzo/releases/latest)**
+**Site : [www.mintzo.fr](https://www.mintzo.fr)** · **[Télécharger l'app Mac](https://github.com/vincentreboul/mintzo/releases/latest)**
 
 ## Ce que fait Mintzo
 
@@ -26,7 +26,7 @@ L'euskara mérite des outils de premier rang — au niveau de ceux dont bénéfi
 
 **Projet expérimental, en développement actif.** Née d'une idée d'Isaak Elduaien, développée par Vincent Reboul, cette première version est une preuve de concept ouverte à la communauté.
 
-**[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : au premier lancement macOS bloque l'app : Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ». L'outil en ligne : [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+**[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : au premier lancement macOS bloque l'app : Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ».
 
 Les contributions sont bienvenues ; voir [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -82,8 +82,7 @@ Ainsi que les bibliothèques Swift [KeyboardShortcuts](https://github.com/sindre
 ## Feuille de route
 
 1. **V1 — application Mac native** (en construction) : dictée, fichiers, historique.
-2. **Phase 2 — site web** : upload et transcription en ligne ; première réponse pour les utilisateurs Windows.
-3. **Phase 3 — application Windows native** : les moteurs et les modèles (whisper.cpp, llama.cpp, GGML/GGUF) sont portables par conception, prêts pour cette étape.
+2. **Phase 2 — application Windows native** : les moteurs et les modèles (whisper.cpp, llama.cpp, GGML/GGUF) sont portables par conception, prêts pour cette étape.
 
 iOS n'est pas dans la feuille de route actuelle.
 

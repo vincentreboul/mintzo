@@ -6,7 +6,7 @@
 
 *Experimental project. Built by Vincent Reboul, in partnership with [Isaak Elduaien](https://github.com/ixak), who came up with the idea and validated the first version.*
 
-**Website and online tool: [www.mintzo.fr](https://www.mintzo.fr)** · **[Download the Mac app](https://github.com/vincentreboul/mintzo/releases/latest)**
+**Website: [www.mintzo.fr](https://www.mintzo.fr)** · **[Download the Mac app](https://github.com/vincentreboul/mintzo/releases/latest)**
 
 ## What Mintzo does
 
@@ -26,7 +26,7 @@ Basque deserves first-rank tools — on par with what English or French speakers
 
 **Experimental project, under active development.** Born from an idea by Isaak Elduaien and built by Vincent Reboul, this first version is a proof of concept, open to the community.
 
-**[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch macOS blocks it: System Settings › Privacy & Security › "Open Anyway". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+**[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch macOS blocks it: System Settings › Privacy & Security › "Open Anyway".
 
 Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -82,8 +82,7 @@ Plus the Swift libraries [KeyboardShortcuts](https://github.com/sindresorhus/Key
 ## Roadmap
 
 1. **V1 — native Mac app** (in progress): dictation, files, history.
-2. **Phase 2 — website**: upload and transcribe online; a first answer for Windows users.
-3. **Phase 3 — native Windows app**: the engines and models (whisper.cpp, llama.cpp, GGML/GGUF) are portable by design, ready for this step.
+2. **Phase 2 — native Windows app**: the engines and models (whisper.cpp, llama.cpp, GGML/GGUF) are portable by design, ready for this step.
 
 iOS is not on the current roadmap.
 
