@@ -147,12 +147,16 @@ enum MainWindowSnapshots {
         // État 3 — détail avec audio conservé : surface de réécoute (lecteur
         // play/pause + progression Gorri + durées) et menu « Berriz sortu ».
         if let detail = makeDetailSeed() {
+            // Store injecté : fait apparaître le bouton Supprimer de la toolbar.
+            let detailStore = try? HistoryStore.inMemory()
             await capture(
                 state: "detail-audio",
                 // Même tint que la fenêtre réelle (`MainWindowRootView`) : les
                 // contrôles standards héritent de l'accent Gorri (§2.1).
-                rootView: NavigationStack { TranscriptionDetailView(transcription: detail) }
-                    .tint(MzColor.gorri),
+                rootView: NavigationStack {
+                    TranscriptionDetailView(transcription: detail, store: detailStore)
+                }
+                .tint(MzColor.gorri),
                 in: outputDir,
                 appearances: appearances
             )

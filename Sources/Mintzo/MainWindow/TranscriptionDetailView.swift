@@ -31,8 +31,15 @@ struct TranscriptionDetailView: View {
     /// présent sur le disque.
     @State private var player: AudioPlayerController?
     @State private var replayState: ReplayState = .idle
+    @State private var confirmingDelete = false
 
-    init(transcription: Transcription) {
+    /// Store d'historique — présent en navigation réelle (autorise la
+    /// suppression depuis le détail), nil dans les rendus QA isolés.
+    private let store: HistoryStore?
+    @Environment(\.dismiss) private var dismiss
+
+    init(transcription: Transcription, store: HistoryStore? = nil) {
+        self.store = store
         _current = State(initialValue: transcription)
         // Par défaut on montre ce que l'utilisateur a réellement collé :
         // le corrigé s'il existe, sinon le brut.
@@ -73,11 +80,43 @@ struct TranscriptionDetailView: View {
         .navigationSubtitle(
             "\(MzFormat.heure(current.date)) · \(MzFormat.duree(current.dureeAudio))"
         )
+        .toolbar {
+            // Suppression depuis le détail (une entrée = son texte + son audio).
+            // Absent des rendus QA isolés (aucun store injecté).
+            if store != nil {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        confirmingDelete = true
+                    } label: {
+                        Label(MzL10n.delete, systemImage: "trash")
+                    }
+                    .help(MzL10n.delete)
+                }
+            }
+        }
+        .confirmationDialog(
+            MzL10n.deleteOneConfirmTitle,
+            isPresented: $confirmingDelete
+        ) {
+            Button(MzL10n.delete, role: .destructive) { deleteEntry() }
+        } message: {
+            Text(MzL10n.deleteOneConfirmMessage)
+        }
         .onDisappear {
             // Un seul lecteur actif dans l'app, et jamais de lecture fantôme
             // après le retour à la liste.
             player?.stop()
         }
+    }
+
+    /// Supprime l'entrée (texte + audio conservé via `HistoryStore.delete`)
+    /// puis revient à la liste, qui se rafraîchit par observation du store.
+    private func deleteEntry() {
+        player?.stop()
+        if let id = current.id {
+            try? store?.delete(id: id)
+        }
+        dismiss()
     }
 
     private var displayedText: String {

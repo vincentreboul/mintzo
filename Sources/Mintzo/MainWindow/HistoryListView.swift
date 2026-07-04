@@ -47,7 +47,7 @@ struct HistoryListView: View {
             content
                 .navigationTitle("Mintzo")
                 .navigationDestination(for: Transcription.self) { transcription in
-                    TranscriptionDetailView(transcription: transcription)
+                    TranscriptionDetailView(transcription: transcription, store: store)
                 }
                 .toolbar {
                     ToolbarItem(placement: .principal) {
