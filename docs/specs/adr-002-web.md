@@ -1,6 +1,15 @@
-# ADR-002 — Version web (phase 2, lancée en session le 2026-07-03)
+# ADR-002 — Version web (phase 2) — SUPERSÉDÉ le 2026-07-04
 
-Décision Vincent 15:06 : transcription web **côté serveur GPU serverless** — même qualité que l'app Mac (large-v3-eu + Latxa), coût à l'usage, audio supprimé après traitement (affiché honnêtement : la promesse « ne quitte jamais » reste exclusive à l'app).
+> **SUPERSÉDÉ.** L'outil de transcription en ligne (`/tresna`) et le serveur GPU
+> Modal (`web/server/`) ont été **retirés le 2026-07-04** — décision de recentrer
+> sur l'app Mac uniquement, pour maîtriser les coûts. Le site `mintzo.fr` est
+> désormais une simple vitrine produit qui pointe vers le téléchargement de l'app
+> Mac. Le code du backend reste consultable dans l'historique git si la piste web
+> est un jour reprise. Ce document est conservé comme trace de la décision d'origine.
+
+---
+
+Décision Vincent 15:06 (2026-07-03) : transcription web **côté serveur GPU serverless** — même qualité que l'app Mac (large-v3-eu + Latxa), coût à l'usage, audio supprimé après traitement (affiché honnêtement : la promesse « ne quitte jamais » reste exclusive à l'app).
 
 ## Architecture
 
