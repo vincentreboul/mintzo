@@ -146,20 +146,42 @@ struct HistoryListView: View {
         }
     }
 
-    /// État vide première ouverture — habit natif (`ContentUnavailableView`),
-    /// geste éditorial conservé : la phrase canonique en serif (§6.3).
+    /// État vide première ouverture — moment éditorial (§6.3) : au centre
+    /// optique (45 % de la hauteur), la phrase canonique en serif New York 22 pt
+    /// comme héros, le sous-titre discret dessous, et l'action de dictée directe
+    /// (micro, sans raccourci ni Accessibilité). Pas de bandeau système
+    /// générique, une seule marque waveform sobre.
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label(MzL10n.emptyHeadline, systemImage: "waveform")
-        } description: {
-            VStack(spacing: 8) {
-                Text(MzL10n.emptyTitle)
-                    .font(MzFont.historyExcerpt)
-                    .foregroundStyle(.primary)
-                Text(MzL10n.emptySubtitle)
+        GeometryReader { geo in
+            emptyStateContent
+                .frame(width: min(geo.size.width - 80, 380))
+                .position(x: geo.size.width / 2, y: geo.size.height * 0.45)
+        }
+    }
+
+    private var emptyStateContent: some View {
+        VStack(spacing: 18) {
+            VStack(spacing: 14) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(MzColor.inkTertiary)
+
+                VStack(spacing: 6) {
+                    Text(MzL10n.emptyTitle)
+                        .font(MzFont.emptyStateTitle)
+                        .foregroundStyle(MzColor.ink)
+                        .multilineTextAlignment(.center)
+                    Text(MzL10n.emptySubtitle)
+                        .font(MzFont.settingsBody)
+                        .foregroundStyle(MzColor.inkSecondary)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding(.top, 2)
-        } actions: {
+            // Bloc informatif fusionné pour VoiceOver (« Aucune transcription
+            // pour l'instant » n'est plus affiché mais reste annoncé).
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(MzL10n.emptyHeadline). \(MzL10n.emptyTitle) \(MzL10n.emptySubtitle)")
+
             Button {
                 NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
             } label: {
@@ -167,6 +189,8 @@ struct HistoryListView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .help(MzL10n.dictateNowHelp)
+            .padding(.top, 2)
         }
     }
 
