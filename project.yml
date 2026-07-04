@@ -45,6 +45,15 @@ targets:
         CFBundleDisplayName: Mintzo
         CFBundleIconFile: AppIcon
         LSUIElement: true
+        # Déclare l'app comme localisée fr/eu/en : macOS rend alors le menu
+        # standard (À propos / Réglages / Services / Masquer / Quitter…) dans sa
+        # propre traduction française ou anglaise selon la langue système —
+        # sans course de timing. L'euskara (non fourni par AppKit) est pris en
+        # charge par MainMenuLocalizer.
+        CFBundleLocalizations:
+          - fr
+          - eu
+          - en
         NSMicrophoneUsageDescription: "Mintzo utilise le microphone pour transcrire votre voix en texte, localement sur votre Mac."
     entitlements:
       path: Sources/Mintzo/Mintzo.entitlements

@@ -58,6 +58,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSWindow.didBecomeKeyNotification,
             object: nil
         )
+        // Les items du menu d'app (À propos / Masquer / Quitter…) sont peuplés
+        // PARESSEUSEMENT par AppKit, juste avant l'ouverture du menu — après le
+        // passage de `localize()` au lancement. On re-localise donc à chaque
+        // ouverture de menu (idempotent) pour rattraper ces items tardifs.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(menuBeganTracking),
+            name: NSMenu.didBeginTrackingNotification,
+            object: nil
+        )
+    }
+
+    @objc private func menuBeganTracking() {
+        MainMenuLocalizer.localize()
     }
 
     // MARK: - Cycle de vie
