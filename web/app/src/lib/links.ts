@@ -2,7 +2,7 @@
 export const GITHUB_URL = 'https://github.com/vincentreboul/mintzo';
 
 /** Release Mac courante — build de développement, non signé. */
-export const MAC_DOWNLOAD_VERSION = 'v0.1.3-dev';
+export const MAC_DOWNLOAD_VERSION = 'v0.1.3';
 export const MAC_DOWNLOAD_URL = `${GITHUB_URL}/releases/download/${MAC_DOWNLOAD_VERSION}/Mintzo-${MAC_DOWNLOAD_VERSION}.zip`;
 
 export const COMMON_VOICE_URL = 'https://commonvoice.mozilla.org/eu';
