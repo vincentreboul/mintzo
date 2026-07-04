@@ -160,7 +160,7 @@ struct HistoryListView: View {
     }
 
     private var emptyStateContent: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 28) {
             VStack(spacing: 14) {
                 Image(systemName: "waveform")
                     .font(.system(size: 30, weight: .light))
@@ -185,12 +185,34 @@ struct HistoryListView: View {
             Button {
                 NotificationCenter.default.post(name: .mintzoDictateToggleRequested, object: nil)
             } label: {
-                Label(MzL10n.dictateNow, systemImage: "mic")
+                HStack(spacing: 7) {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(MzL10n.dictateNow)
+                        .font(.system(size: 14, weight: .semibold))
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(DictatePillStyle())
             .help(MzL10n.dictateNowHelp)
-            .padding(.top, 2)
+        }
+    }
+
+    /// Bouton primaire de l'état vide — pilule Gorri généreuse (§2.1) avec
+    /// retour d'appui, plutôt que le `borderedProminent` système jugé trop
+    /// serré. Ombre portée très légère teintée Gorri pour la détacher du papier
+    /// sans rompre la sobriété.
+    private struct DictatePillStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .foregroundStyle(.white)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .background(MzColor.gorri, in: Capsule())
+                .shadow(color: MzColor.gorri.opacity(0.22), radius: 10, y: 4)
+                .opacity(configuration.isPressed ? 0.9 : 1)
+                .scaleEffect(configuration.isPressed ? 0.98 : 1)
+                .animation(MzMotion.micro, value: configuration.isPressed)
+                .contentShape(Capsule())
         }
     }
 
