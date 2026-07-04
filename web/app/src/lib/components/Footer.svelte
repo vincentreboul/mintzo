@@ -12,7 +12,6 @@
 			<p class="colophon">{t('common.footerLicense')}</p>
 		</div>
 		<nav class="links" aria-label="Oina">
-			<a href="/tresna">{t('common.navTool')}</a>
 			<a href="/pribatutasuna">{t('common.footerPrivacy')}</a>
 			<a href="/lancement">{t('common.footerAnnouncement')}</a>
 			<!-- TODO-URL -->

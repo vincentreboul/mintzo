@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { t } from '$lib/i18n/index.svelte';
+	import { MAC_DOWNLOAD_URL } from '$lib/links';
 	import Logo from './Logo.svelte';
 	import LangSwitch from './LangSwitch.svelte';
 </script>
@@ -12,9 +12,9 @@
 		</a>
 		<nav class="right" aria-label="Nabigazioa">
 			<LangSwitch />
-			{#if page.url.pathname !== '/tresna'}
-				<a class="btn btn-primary cta" href="/tresna">{t('common.navTool')}</a>
-			{/if}
+			<a class="btn btn-primary cta" href={MAC_DOWNLOAD_URL} rel="noopener"
+				>{t('common.navDownload')}</a
+			>
 		</nav>
 	</div>
 </header>
