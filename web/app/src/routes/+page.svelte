@@ -29,8 +29,8 @@
 		<h1 class="display hero-title rise" style="--d: 60ms">{t('home.heroTitle')}</h1>
 		<p class="hero-sub rise" style="--d: 120ms">{t('home.heroSub')}</p>
 		<div class="ctas rise" style="--d: 180ms">
-			<a class="btn btn-primary btn-lg" href="/tresna">{t('home.ctaTool')}</a>
-			<a class="btn btn-quiet btn-lg" href="#mac">{t('home.ctaMac')}</a>
+			<a class="btn btn-primary btn-lg" href="#mac">{t('home.ctaMac')}</a>
+			<a class="btn btn-quiet btn-lg" href={GITHUB_URL} rel="noopener">{t('home.ctaGithub')}</a>
 		</div>
 	</div>
 	<div class="shell stage-wrap rise" style="--d: 260ms">
@@ -80,7 +80,7 @@
 	</div>
 </section>
 
-<!-- ============ Ahots-mezuak → testua ============ -->
+<!-- ============ Fitxategiak → testua ============ -->
 <section class="feature">
 	<div class="shell feature-grid flip">
 		<div class="feature-copy">
@@ -125,19 +125,6 @@
 		<h2 class="display local-title">{t('home.localTitle')}</h2>
 		<p class="local-body">{t('home.localBody')}</p>
 		<a class="local-link" href="/pribatutasuna">{t('home.localLink')}</a>
-	</div>
-</section>
-
-<!-- ============ Tresna — CTA fort ============ -->
-<section class="toolcta">
-	<div class="shell">
-		<div class="panel toolcta-panel">
-			<p class="kicker accent">{t('home.toolKicker')}</p>
-			<h2 class="display toolcta-title">{t('home.toolTitle')}</h2>
-			<p class="toolcta-body">{t('home.toolBody')}</p>
-			<a class="btn btn-primary btn-lg" href="/tresna">{t('home.toolCta')}</a>
-			<p class="toolcta-free">{t('home.toolFree')}</p>
-		</div>
 	</div>
 </section>
 
@@ -193,23 +180,6 @@
 				<a class="btn-text install-alt" href={GITHUB_URL} rel="noopener">
 					{t('home.installMacAlt')}<span aria-hidden="true"> ↗</span>
 				</a>
-			</article>
-			<article class="panel install-card">
-				<p class="kicker accent">{t('home.installPwaKicker')}</p>
-				<h3 class="display install-name">{t('home.installPwaTitle')}</h3>
-				<p class="install-req">{t('home.installPwaIntro')}</p>
-				<ol class="install-steps">
-					<li>
-						{t('home.installPwa1Pre')}
-						<a href="/tresna">{t('home.installPwa1Link')}</a>{t('home.installPwa1Post')}
-					</li>
-					<li>{t('home.installPwa2')}</li>
-					<li>{t('home.installPwa3')}</li>
-				</ol>
-				<div class="install-icon">
-					<img src="/icons/icon-192.png" alt={t('home.installPwaIconAlt')} width="192" height="192" loading="lazy" />
-					<span class="install-icon-caption">{t('home.installPwaIconCaption')}</span>
-				</div>
 			</article>
 		</div>
 	</div>
@@ -552,42 +522,6 @@
 		text-decoration-color: var(--on-red);
 	}
 
-	/* ---------- CTA outil ---------- */
-	.toolcta {
-		padding-block: clamp(3.5rem, 8vw, 6.5rem) 0;
-	}
-
-	.toolcta-panel {
-		display: grid;
-		justify-items: center;
-		text-align: center;
-		padding: clamp(3rem, 7vw, 5.5rem) clamp(1.5rem, 5vw, 4rem);
-	}
-
-	.toolcta-title {
-		font-size: clamp(1.875rem, 4vw, 2.875rem);
-		margin-top: 1rem;
-		max-width: 22ch;
-	}
-
-	.toolcta-body {
-		color: var(--ink-2);
-		font-size: 1.0625rem;
-		line-height: 1.6;
-		max-width: 48ch;
-		margin-top: 1rem;
-	}
-
-	.toolcta-panel .btn {
-		margin-top: 2rem;
-	}
-
-	.toolcta-free {
-		margin-top: 0.875rem;
-		font-size: 0.8125rem;
-		color: var(--ink-3);
-	}
-
 	/* ---------- nola dabilen ---------- */
 	.how,
 	.install,
@@ -630,10 +564,9 @@
 	/* ---------- instalatu ---------- */
 	.install-grid {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: clamp(1.25rem, 3vw, 2rem);
+		grid-template-columns: minmax(0, 40rem);
+		justify-content: center;
 		margin-top: 2.25rem;
-		align-items: stretch;
 	}
 
 	.install-card {
@@ -701,34 +634,8 @@
 		color: var(--gorri);
 	}
 
-	.install-steps a {
-		color: inherit;
-	}
-
 	.install-alt {
 		margin-top: 1.75rem;
-	}
-
-	.install-icon {
-		display: flex;
-		align-items: center;
-		gap: 0.875rem;
-		margin-top: 1.75rem;
-	}
-
-	.install-icon img {
-		width: 3rem;
-		height: 3rem;
-		border-radius: 0.75rem;
-		border: 1px solid var(--hairline);
-		box-shadow: var(--shadow-card);
-	}
-
-	.install-icon-caption {
-		font-size: 0.8125rem;
-		line-height: 1.5;
-		color: var(--ink-3);
-		max-width: 26ch;
 	}
 
 	/* ---------- crédits ---------- */
