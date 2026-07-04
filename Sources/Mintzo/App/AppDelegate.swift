@@ -154,6 +154,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    /// Quitter proprement malgré une course connue de ggml : à l'`exit()`, les
+    /// destructeurs statiques C++ libèrent les devices Metal de whisper/llama
+    /// pendant que leurs threads d'init « residency sets » tournent encore
+    /// (`ggml-metal-device.m`) → `ggml_abort`, crash systématique au quit.
+    /// On flush les préférences puis on sort SANS exécuter ces destructeurs :
+    /// le système récupère mémoire, GPU et fichiers, et il n'y a rien à écrire
+    /// en attente (historique et audio sont commités de façon synchrone).
+    /// À retirer si llama.cpp / whisper.cpp corrigent la course en amont.
+    func applicationWillTerminate(_ notification: Notification) {
+        UserDefaults.standard.synchronize()
+        _exit(0)
+    }
+
     // MARK: - Pont openWindow
 
     /// Câblé par la première vue rendue (label menu bar, Réglages). Idempotent ;
