@@ -2,7 +2,9 @@
 
 **Dictation and transcription for Basque and French, 100% local on your Mac.**
 
-[Euskara](README.md) · [Français](README.fr.md) · **English**
+[Français](README.md) · [Euskara](README.eu.md) · **English**
+
+*Experimental project. Built by Vincent Reboul, in partnership with [Isaak Elduaien](https://github.com/ixak), who came up with the idea and validated the first version.*
 
 **Website and online tool: [www.mintzo.fr](https://www.mintzo.fr)** · **[Download the Mac app](https://github.com/vincentreboul/mintzo/releases/latest)**
 
@@ -22,7 +24,9 @@ Basque deserves first-rank tools — on par with what English or French speakers
 
 ## Status
 
-Under active development. **[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch macOS blocks it: System Settings › Privacy & Security › "Open Anyway". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+**Experimental project, under active development.** Born from an idea by Isaak Elduaien and built by Vincent Reboul, this first version is a proof of concept, open to the community.
+
+**[Download the latest release (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, unsigned development build: on first launch macOS blocks it: System Settings › Privacy & Security › "Open Anyway". The online tool: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
 Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -85,8 +89,8 @@ iOS is not on the current roadmap.
 
 ## Authors
 
-- **Vincent Reboul** — project co-author
-- **Isaak Elduaien** — project co-author
+- **Vincent Reboul** — design and development
+- **[Isaak Elduaien](https://github.com/ixak)** — original idea and validation of the first version
 
 ## License
 

@@ -1,37 +1,41 @@
 # Mintzo
 
-**Euskararako eta frantseserako diktaketa eta transkripzioa, % 100 lokala, zure Mac-ean.**
+**Dictée et transcription pour l'euskara et le français, 100 % en local sur votre Mac.**
 
-**Euskara** · [Français](README.fr.md) · [English](README.en.md)
+**Français** · [Euskara](README.eu.md) · [English](README.en.md)
 
-**Webgunea eta lineako tresna : [www.mintzo.fr](https://www.mintzo.fr)** · **[Deskargatu Mac aplikazioa](https://github.com/vincentreboul/mintzo/releases/latest)**
+*Projet expérimental. Développé par Vincent Reboul, en partenariat avec [Isaak Elduaien](https://github.com/ixak), qui en a eu l'idée et validé la première version.*
 
-## Zer egiten duen
+**Site et outil en ligne : [www.mintzo.fr](https://www.mintzo.fr)** · **[Télécharger l'app Mac](https://github.com/vincentreboul/mintzo/releases/latest)**
 
-- **Diktaketa sistema osoan.** Laster-tekla globala sakatu, hitz egin, eta testu zuzendua kurtsorean itsasten da, edozein aplikaziotan. Kopia bat arbelean eta historian gordetzen da.
-- **Audio-fitxategien transkripzioa.** Arrastatu WhatsAppeko ahots-mezu bat (`.opus`), ahots-ohar bat (`.m4a`), `.mp3` bat edo beste audio-formatu bat: Mintzok transkribatu eta zuzendu egiten du.
-- **Euskarazko zuzenketa, lokala.** Transkripzio gordinaz gain, Latxa ereduak ortografia, puntuazioa eta maiuskulak zuzentzen ditu, esanahia aldatu gabe. Bi bertsioak gordetzen dira beti: jatorrizkoa eta zuzendua.
-- **Historia.** Transkripzio guztiak leku bakarrean: testu osoko bilaketa, klik bakarrean kopiatu, banaka edo denak ezabatu.
-- **Konexiorik gabe.** Ereduak behin deskargatuta, ez da konexiorik behar: hegazkin moduan ere badabil. Telemetriarik ez, konturik ez, harpidetzarik ez.
+## Ce que fait Mintzo
 
-**Audioa ez da inoiz zure Mac-etik ateratzen.**
+- **Dictée système.** Un raccourci global, vous parlez, le texte corrigé s'insère au curseur dans n'importe quelle application. Une copie part au presse-papier et dans l'historique.
+- **Transcription de fichiers audio.** Glissez un vocal WhatsApp (`.opus`), un mémo vocal (`.m4a`), un `.mp3` ou un autre format audio : Mintzo transcrit et corrige.
+- **Correction en euskara, locale.** Au-delà de la transcription brute, le modèle Latxa corrige orthographe, ponctuation et majuscules, sans toucher au sens. Les deux versions sont toujours conservées : l'originale et la corrigée.
+- **Historique.** Toutes vos transcriptions au même endroit : recherche plein texte, copie en un clic, suppression unitaire ou totale.
+- **Sans connexion.** Une fois les modèles téléchargés, aucune connexion n'est requise : Mintzo fonctionne en mode avion. Pas de télémétrie, pas de compte, pas d'abonnement.
 
-## Zergatik
+**« Audioa ez da inoiz zure Mac-etik ateratzen. » — l'audio ne quitte jamais votre Mac.**
 
-Euskarak lehen mailako tresnak merezi ditu — ingelesak eta frantsesak dituztenen parekoak. Mintzo euskal hizkuntza-teknologien komunitatearen lanaren gainean eraikita dago: HiTZ zentroaren ereduak, Common Voice-ko boluntarioen ahotsak, urteetako lan librea. Helburua xumea da: lan hori eguneroko tresna bihurtzea, doan eta kode irekian, Mac bat duen edozein euskaldunentzat.
+## Pourquoi
 
-## Egoera
+L'euskara mérite des outils de premier rang — au niveau de ceux dont bénéficient l'anglais ou le français. Mintzo est construit sur le travail de la communauté basque des technologies de la langue : les modèles du centre HiTZ, les voix des bénévoles de Common Voice, des années de travail libre. L'objectif est simple : transformer ce travail en outil quotidien, gratuit et open source, pour tout bascophone équipé d'un Mac.
 
-Garapen aktiboan. **[Deskargatu azken bertsioa (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, garapen-bertsioa sinatu gabe: lehen irekieran macOS-ek blokeatzen du: Sistemaren ezarpenak › Pribatutasuna eta segurtasuna › « Ireki hala ere ». Lineako tresna: [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
+## État
 
-Ekarpenak ongi etorriak dira; ikus [CONTRIBUTING.md](CONTRIBUTING.md).
+**Projet expérimental, en développement actif.** Née d'une idée d'Isaak Elduaien, développée par Vincent Reboul, cette première version est une preuve de concept ouverte à la communauté.
 
-### Iturburutik eraikitzea
+**[Télécharger la dernière version (zip)](https://github.com/vincentreboul/mintzo/releases/latest)** — Apple Silicon, macOS 15+, build de développement non signé : au premier lancement macOS bloque l'app : Réglages Système › Confidentialité et sécurité › « Ouvrir quand même ». L'outil en ligne : [www.mintzo.fr/tresna](https://www.mintzo.fr/tresna).
 
-Behar dituzu: Apple Silicon duen Mac bat, macOS 15 edo berriagoa, Xcode 26 eta [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Les contributions sont bienvenues ; voir [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### Compiler depuis les sources
+
+Prérequis : un Mac Apple Silicon, macOS 15 ou plus récent, Xcode 26 et [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
-# errepositorioaren erroan
+# à la racine du dépôt
 brew install xcodegen
 scripts/fetch-whisper-xcframework.sh   # whisper.cpp v1.9.1 (XCFramework)
 scripts/fetch-llama-xcframework.sh     # llama.cpp b9862 (XCFramework)
@@ -39,55 +43,55 @@ xcodegen generate
 open Mintzo.xcodeproj
 ```
 
-Xcode-n, exekutatu `Mintzo` eskema. Testak pasatzeko, deskargatu aurrez testetarako eredu txikia (`scripts/download-test-model.sh`) eta gero Product ▸ Test (⌘U).
+Dans Xcode, lancez le schéma `Mintzo`. Pour exécuter les tests, téléchargez d'abord le petit modèle de test (`scripts/download-test-model.sh`), puis Product ▸ Test (⌘U).
 
-## Nola dabilen
+## Comment ça marche
 
 ```
-audioa — mikrofonoa edo fitxategia
+audio — micro ou fichier
    │
    │  CoreAudio · 16 kHz mono
    ▼
-Whisper large-v3, euskarazko doikuntza — whisper.cpp · Metal
+Whisper large-v3, affiné pour le basque — whisper.cpp · Metal
    │
-   │  transkripzio gordina
+   │  transcription brute
    ▼
-Latxa 4B (aukeran) — llama.cpp
+Latxa 4B (optionnel) — llama.cpp
    │
-   │  zuzenketa: ortografia, puntuazioa, maiuskulak
+   │  correction : orthographe, ponctuation, majuscules
    ▼
-testua — kurtsorean itsatsita · arbelean · historian
+texte — inséré au curseur · presse-papier · historique
 ```
 
-Euskarazko audioak Whisper large-v3ren euskarazko doikuntzarekin transkribatzen dira; frantsesezkoak, large-v3-turbo eredu eleaniztunarekin. Ereduak aplikazioak berak deskargatzen ditu lehen erabileran, behin bakarrik, eta SHA256 bidez egiaztatzen dira. Tamainak: euskarazko eredua 3,1 GB, frantsesezkoa 1,6 GB, Latxa 2,5 GB.
+L'audio en basque est transcrit avec le fine-tune basque de Whisper large-v3 ; le français, avec le modèle multilingue large-v3-turbo. Les modèles sont téléchargés par l'application elle-même au premier usage, une seule fois, et vérifiés par SHA256. Tailles : modèle basque 3,1 Go, modèle français 1,6 Go, Latxa 2,5 Go.
 
-Zuzenketa aukerakoa da: desaktiba daiteke, edo, nahi izanez gero, hodeiko eredu batekin egin, norberaren API gakoa erabilita. Lehenespena beti lokala da, eta audioa ez da inolaz ere igotzen.
+La correction est optionnelle : elle peut être désactivée, ou, si vous le souhaitez, confiée à un modèle cloud avec votre propre clé API. Le défaut est toujours local, et l'audio n'est jamais envoyé nulle part.
 
-## Kredituak
+## Crédits
 
-Mintzo lan hauen gainean dago eraikita:
+Mintzo est construit sur ces travaux :
 
-- **[xezpeleta/whisper-large-v3-eu](https://huggingface.co/xezpeleta/whisper-large-v3-eu)** (Apache 2.0) — euskarazko transkripzioaren motorra. Ereduaren txartelaren arabera, % 4,84eko WERa Common Voice 18ko testean, Whisper arruntaren % 38,85en aldean.
-- **[HiTZ](https://hitz.ehu.eus/)**, Euskal Herriko Unibertsitateko (UPV/EHU) Hizkuntza Teknologiako Zentroa — **[Latxa](https://huggingface.co/HiTZ/Latxa-Qwen3-VL-4B-Instruct)** euskarazko hizkuntza-ereduen sortzailea (Apache 2.0). Latxa da zuzenketa-pasearen bihotza.
-- **[Mozilla Common Voice euskara](https://commonvoice.mozilla.org/eu)** — boluntarioen ahotsekin osatutako corpus askea, euskarazko ahots-teknologiaren oinarria. Zuk ere lagun dezakezu: [grabatu esaldi batzuk](https://commonvoice.mozilla.org/eu).
-- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** eta **[llama.cpp](https://github.com/ggml-org/llama.cpp)** (ggml-org, MIT) — inferentzia lokala posible egiten duten motorrak.
-- **[Librezale](https://librezale.eus/)** — software librea euskaratzen duen taldea. Mintzoren euskarazko testuek haren konbentzioei jarraitzen diete, eta lokalizazioa komunitatearen berrikuspenera zabalik dago.
+- **[xezpeleta/whisper-large-v3-eu](https://huggingface.co/xezpeleta/whisper-large-v3-eu)** (Apache 2.0) — le moteur de transcription basque. D'après la fiche du modèle, WER de 4,84 % sur le test Common Voice 18, contre 38,85 % pour le Whisper standard.
+- **[HiTZ](https://hitz.ehu.eus/)**, le centre de technologies de la langue de l'Université du Pays basque (UPV/EHU) — créateur de **[Latxa](https://huggingface.co/HiTZ/Latxa-Qwen3-VL-4B-Instruct)**, la famille de modèles de langue en euskara (Apache 2.0). Latxa est le cœur de la passe de correction.
+- **[Mozilla Common Voice euskara](https://commonvoice.mozilla.org/eu)** — le corpus libre constitué des voix de bénévoles, socle des technologies vocales basques. Vous pouvez y contribuer : [enregistrez quelques phrases](https://commonvoice.mozilla.org/eu).
+- **[whisper.cpp](https://github.com/ggml-org/whisper.cpp)** et **[llama.cpp](https://github.com/ggml-org/llama.cpp)** (ggml-org, MIT) — les moteurs qui rendent l'inférence locale possible.
+- **[Librezale](https://librezale.eus/)** — le collectif qui localise le logiciel libre en basque. Les textes en euskara de Mintzo suivent ses conventions, et la localisation est ouverte à la relecture de la communauté.
 
-Baita [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) eta [GRDB](https://github.com/groue/GRDB.swift) Swift liburutegiak ere.
+Ainsi que les bibliothèques Swift [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) et [GRDB](https://github.com/groue/GRDB.swift).
 
-## Bide-orria
+## Feuille de route
 
-1. **V1 — Mac aplikazio natiboa** (orain eraikitzen): diktaketa, fitxategiak, historia.
-2. **2. fasea — webgunea**: audioa igo eta linean transkribatzeko; Windows erabiltzaileentzako lehen bidea.
-3. **3. fasea — Windows aplikazio natiboa**: motorrak eta ereduak (whisper.cpp, llama.cpp, GGML/GGUF) eramangarriak dira diseinuz, prest daude horretarako.
+1. **V1 — application Mac native** (en construction) : dictée, fichiers, historique.
+2. **Phase 2 — site web** : upload et transcription en ligne ; première réponse pour les utilisateurs Windows.
+3. **Phase 3 — application Windows native** : les moteurs et les modèles (whisper.cpp, llama.cpp, GGML/GGUF) sont portables par conception, prêts pour cette étape.
 
-iOS ez dago gaur egungo bide-orrian.
+iOS n'est pas dans la feuille de route actuelle.
 
-## Egileak
+## Auteurs
 
-- **Vincent Reboul** — proiektuaren egilekidea
-- **Isaak Elduaien** — proiektuaren egilekidea
+- **Vincent Reboul** — conception et développement
+- **[Isaak Elduaien](https://github.com/ixak)** — idée d'origine et validation de la première version
 
-## Lizentzia
+## Licence
 
-MIT — ikus [LICENSE](LICENSE). Exekuzio-garaian deskargatzen diren ereduek nork bere lizentzia dute; zerrenda osoa eta egiaztapen-datuak: [docs/MODELS.md](docs/MODELS.md).
+MIT — voir [LICENSE](LICENSE). Les modèles téléchargés à l'exécution conservent leurs licences respectives ; liste complète et données de vérification : [docs/MODELS.md](docs/MODELS.md).
